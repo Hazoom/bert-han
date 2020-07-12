@@ -1,0 +1,18 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[packages]
+torch = "*"
+torchtext = "*"
+attrs = "*"
+jsonnet = "*"
+dill = "*"
+tqdm = "*"
+stanford-corenlp = "*"
+spacy = "*"
+en-core-web-sm = {file = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.5/en_core_web_sm-2.2.5.tar.gz"}
+
+[requires]
+python_version = "3.6"
