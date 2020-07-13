@@ -4,15 +4,16 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [packages]
-torch = "*"
-torchtext = "*"
-attrs = "*"
-jsonnet = "*"
-dill = "*"
-tqdm = "*"
-stanford-corenlp = "*"
-spacy = "*"
+torch = "==1.5.1"
+torchtext = "==0.6.0"
+attrs = "==19.3.0"
+jsonnet = "==0.16.0"
+dill = "==0.3.2"
+tqdm = "==4.47.0"
+stanford-corenlp = "==3.9.2"
+spacy = "==2.3.1"
 en-core-web-sm = {file = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.3.1/en_core_web_sm-2.3.1.tar.gz"}
+ftfy = "==5.7"
 
 [requires]
 python_version = "3.6"
