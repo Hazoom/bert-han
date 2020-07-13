@@ -18,10 +18,12 @@ function(args, data_path=_data_path) _base(output_from=true, data_path=data_path
         word_attention+: {
             dropout: 0.2,
             word_emb_size: 300,
-        },   
+            recurrent_size: 256,
+        },
         sentence_attention+: {
             dropout: 0.2,
             word_emb_size: 300,
+            recurrent_size: 256,
         },
         preprocessor+: {
             word_emb: {

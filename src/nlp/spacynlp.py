@@ -17,4 +17,4 @@ class SpaCyNLP(abstract_nlp.NLP):
         if self.lemmatize:
             return [[tok.lemma_ for tok in sent] for sent in doc.sents]
         else:
-            return [[tok.text for tok in sent] for sent in doc.sents]
+            return [[tok.text.lower() for tok in sent] for sent in doc.sents]

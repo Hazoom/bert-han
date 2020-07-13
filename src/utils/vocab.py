@@ -59,7 +59,7 @@ class VocabBuilder:
         self.min_freq = min_freq
         self.max_count = max_count
 
-    def add_word(self, word, count=1):
+    def add_word(self, word, count: int = 1):
         self.word_freq[word] += count
 
     def finish(self, *args, **kwargs):

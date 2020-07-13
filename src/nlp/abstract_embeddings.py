@@ -15,6 +15,10 @@ class Embedder(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
+    def dim(self) -> int:
+        pass
+
+    @abc.abstractmethod
     def to(self, device):
         """Transfer the pretrained embeddings to the given device."""
         pass

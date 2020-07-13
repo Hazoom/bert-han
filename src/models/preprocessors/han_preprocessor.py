@@ -1,18 +1,20 @@
 import os
 import json
 import collections
-import itertools
 from typing import Tuple
 
+from nlp import abstract_embeddings
 from src.nlp.abstract_embeddings import Embedder
 from src.nlp.abstract_nlp import NLP
 from src.models import abstract_preprocessor
 from src.utils import registry, vocab
 from src.datasets.hanitem import HANItem
+from src.nlp import textcleaning
 
 
 @registry.register('preprocessor', 'HANPreprocessor')
 class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
+
     def __init__(self, save_path, min_freq, max_count, word_emb, nlp):
         self.word_emb: Embedder = registry.instantiate(
             registry.lookup("word_emb", word_emb["name"]),
@@ -25,7 +27,7 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
             unused_keys=("name",),
         )
 
-        self.data_dir = os.path.join(save_path, 'han')
+        self.data_dir = os.path.join(save_path, "tokenized_data")
         self.texts = collections.defaultdict(list)
 
         self.vocab_builder = vocab.VocabBuilder(min_freq, max_count)
@@ -35,6 +37,12 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         self.counted_db_ids = set()
         self.preprocessed_schemas = {}
 
+    def vocab(self) -> vocab.Vocab:
+        return self.vocab()
+
+    def embedder(self) -> abstract_embeddings.Embedder:
+        return self.word_emb
+
     def validate_item(self, item: HANItem, section: str) -> Tuple[bool, str]:
         return True, ""
 
@@ -42,17 +50,20 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         preprocessed = self.preprocess_item(item)
         self.texts[section].append(preprocessed)
 
-        if section == 'train':
-            to_count = itertools.chain(preprocessed["sentences"])
-
-            for token in to_count:
-                self.vocab_builder.add_word(token)
+        if section == "train":
+            for sentence in preprocessed["sentences"]:
+                for token in sentence:
+                    if token:
+                        self.vocab_builder.add_word(token)
 
     def clear_items(self):
         self.texts = collections.defaultdict(list)
 
     def preprocess_item(self, item: HANItem):
-        sentences = [self._tokenize(sentence) for sentence in item.sentences]
+        sentences = [textcleaning.clean_text(sentence) for sentence in item.sentences]
+        sentences = [sentence.split("\\n") for sentence in sentences]
+        sentences = [sentence for sentence_list in sentences for sentence in sentence_list if sentence]
+        sentences = [self._tokenize(sentence) for sentence in sentences if sentence]
 
         return {
             "raw_sentences": item.sentences,

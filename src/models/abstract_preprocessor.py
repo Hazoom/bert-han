@@ -1,6 +1,10 @@
 import abc
 
 
+from src.utils import vocab
+from src.nlp import abstract_embeddings
+
+
 class AbstractPreproc(metaclass=abc.ABCMeta):
     """Used for preprocessing data according to the model's liking.
 
@@ -42,4 +46,12 @@ class AbstractPreproc(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def dataset(self, section):
         """Returns a torch.data.utils.Dataset instance."""
+        pass
+
+    @abc.abstractmethod
+    def vocab(self) -> vocab.Vocab:
+        pass
+
+    @abc.abstractmethod
+    def embedder(self) -> abstract_embeddings.Embedder:
         pass

@@ -14,6 +14,9 @@ class GloVe(abstract_embeddings.Embedder):
         self.dim = self.glove.dim
         self.vectors = self.glove.vectors
 
+    def dim(self) -> int:
+        return self.dim()
+
     def lookup(self, token):
         index = self.glove.stoi.get(token)
         return self.vectors[index] if index is not None else None

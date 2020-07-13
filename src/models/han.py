@@ -2,8 +2,9 @@ import torch
 import torch.utils.data
 from typing import Tuple
 
+from nlp import abstract_embeddings
 from src.models import abstract_preprocessor
-from src.utils import registry
+from src.utils import registry, vocab
 from src.datasets.hanitem import HANItem
 
 
@@ -21,14 +22,21 @@ class HANDataset(torch.utils.data.Dataset):
 @registry.register('model', 'HAN')
 class HANModel(torch.nn.Module):
     class Preprocessor(abstract_preprocessor.AbstractPreproc):
+
         def __init__(self, preprocessor):
             super().__init__()
 
-            self.preprocessor = registry.instantiate(
+            self.preprocessor: abstract_preprocessor.AbstractPreproc = registry.instantiate(
                 registry.lookup('preprocessor', preprocessor['name']),
                 preprocessor,
                 unused_keys=("name",)
             )
+
+        def vocab(self) -> vocab.Vocab:
+            return self.preprocessor.vocab()
+
+        def embedder(self) -> abstract_embeddings.Embedder:
+            return self.embedder()
 
         def validate_item(self, item: HANItem, section: str) -> Tuple[bool, str]:
             item_result, validation_info = self.preprocessor.validate_item(item, section)

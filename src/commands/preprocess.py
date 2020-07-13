@@ -33,7 +33,7 @@ class Preprocessor:
         self.model_preprocessor.clear_items()
         for section in self.config['dataset']:
             data = registry.construct('dataset', self.config['dataset'][section])
-            for item in tqdm.tqdm(data, desc=f"{section} section", dynamic_ncols=True):
+            for item in tqdm.tqdm(data, desc=f"pre-processing {section} section", dynamic_ncols=True):
                 to_add, validation_info = self.model_preprocessor.validate_item(item, section)
                 if to_add:
                     self.model_preprocessor.add_item(item, section, validation_info)

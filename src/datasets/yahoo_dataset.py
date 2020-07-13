@@ -8,7 +8,7 @@ from src.utils import registry
 
 @registry.register("dataset", "yahoo_answers")
 class YahooAnswersDataset(torch.utils.data.Dataset):
-    def __init__(self, path):
+    def __init__(self, path, limit=None):
         self.path = path
 
         self.items = []
@@ -17,6 +17,8 @@ class YahooAnswersDataset(torch.utils.data.Dataset):
             for index, line in enumerate(tqdm.tqdm(reader, desc=f"reading rows from path: {path}", dynamic_ncols=True)):
                 if index > 0:
                     self.items.append(HANItem(sentences=[line[1], line[2], line[3]], label=line[0]))
+                if limit and len(self.items) >= limit:
+                    break
 
     def __len__(self):
         return len(self.items)
