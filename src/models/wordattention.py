@@ -38,13 +38,18 @@ class WordAttention(torch.nn.Module):
 
         self.encoder = nn.LSTM(
             input_size=self.word_emb_size,
-            hidden_size=self.recurrent_size,
+            hidden_size=self.recurrent_size // 2,
             dropout=self.dropout,
             bidirectional=True,
             batch_first=True,
         )
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x, hidden):
+        self.word_weight = nn.Parameter(torch.Tensor(self.recurrent_size, self.recurrent_size))
+        self.word_bias = nn.Parameter(torch.Tensor(1, self.recurrent_size))
+        self.context_weight = nn.Parameter(torch.Tensor(self.recurrent_size, 1))
+
+    def forward(self, x):
         inp = self.dropout(self.embedding(x))
-        return self.encoder(inp, hidden)
+        output, (h, c) = self.encoder(inp)
+        return output

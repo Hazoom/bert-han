@@ -66,9 +66,8 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         sentences = [self._tokenize(sentence) for sentence in sentences if sentence]
 
         return {
-            "raw_sentences": item.sentences,
             "sentences": sentences,
-            "label": item.label
+            "label": item.label,
         }
 
     def _tokenize(self, sentence: str):
@@ -84,7 +83,7 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         for section, texts in self.texts.items():
             with open(os.path.join(self.data_dir, section + '.jsonl'), 'w') as f:
                 for text in texts:
-                    f.write(json.dumps(text) + '\n')
+                    f.write(json.dumps(text) + "\n")
 
     def load(self):
         self.vocab = vocab.Vocab.load(self.vocab_path)
