@@ -24,7 +24,11 @@ class HANModel(torch.nn.Module):
         def __init__(self, preprocessor):
             super().__init__()
 
-            self.preprocessor = registry.construct('preprocessor', preprocessor['name'])
+            self.preprocessor = registry.instantiate(
+                registry.lookup('preprocessor', preprocessor['name']),
+                preprocessor,
+                unused_keys=("name",)
+            )
 
         def validate_item(self, item: HANItem, section: str) -> Tuple[bool, str]:
             item_result, validation_info = self.preprocessor.validate_item(item, section)

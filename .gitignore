@@ -134,3 +134,7 @@ unzip_requirements.py
 json.json
 
 cache/
+
+.vector_cache/
+
+third_party/

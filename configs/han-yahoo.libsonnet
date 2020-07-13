@@ -1,14 +1,14 @@
-function(output_from, data_path='data/yahoo_answers_csv') {
+function(output_from, data_path='data/yahoo_answers_csv/') {
     local PREFIX = data_path,
     
     dataset: {
         train: {
             name: 'yahoo_answers',
-            path: 'train.csv',
+            path: PREFIX + 'train.csv',
         },
         test: {
             name: 'yahoo_answers',
-            path: 'test.csv',
+            path: PREFIX + 'test.csv',
         },
     },
 
@@ -29,6 +29,10 @@ function(output_from, data_path='data/yahoo_answers_csv') {
             word_emb: {
                 name: 'glove',
                 kind: '42B',
+            },
+            nlp: {
+                name: 'spaCy',
+                model: 'en_core_web_sm'
             },
             min_freq: 5,
             max_count: 30000,

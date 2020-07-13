@@ -1,4 +1,5 @@
 import csv
+import tqdm
 import torch.utils.data
 
 from src.datasets.hanitem import HANItem
@@ -13,7 +14,7 @@ class YahooAnswersDataset(torch.utils.data.Dataset):
         self.items = []
         with open(path, "r") as in_file:
             reader = csv.reader(in_file)
-            for index, line in reader:
+            for index, line in enumerate(tqdm.tqdm(reader, desc=f"reading rows from path: {path}", dynamic_ncols=True)):
                 if index > 0:
                     self.items.append(HANItem(sentences=[line[1], line[2], line[3]], label=line[0]))
 

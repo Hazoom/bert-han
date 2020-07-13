@@ -7,15 +7,17 @@ import tqdm
 
 # These imports are needed for registry.lookup
 # noinspection PyUnresolvedReferences
+from src.datasets import yahoo_dataset
+# noinspection PyUnresolvedReferences
+from src.models import han
+# noinspection PyUnresolvedReferences
+from src.models.preprocessors import han_preprocessor
+# noinspection PyUnresolvedReferences
+from src.nlp import glove_embeddings, spacynlp
+# noinspection PyUnresolvedReferences
 from src.utils import registry
 # noinspection PyUnresolvedReferences
 from src.utils import vocab
-# noinspection PyUnresolvedReferences
-from src import models
-# noinspection PyUnresolvedReferences
-from src import datasets
-# noinspection PyUnresolvedReferences
-from src import embeddings
 
 
 class Preprocessor:
@@ -23,12 +25,14 @@ class Preprocessor:
         self.config = config
         self.model_preprocessor = registry.instantiate(
             registry.lookup('model', config['model']).Preprocessor,
-            config['model'])
+            config['model'],
+            unused_keys=("sentence_attention", "word_attention", "name"),
+        )
 
     def preprocess(self):
         self.model_preprocessor.clear_items()
-        for section in self.config['data']:
-            data = registry.construct('dataset', self.config['data'][section])
+        for section in self.config['dataset']:
+            data = registry.construct('dataset', self.config['dataset'][section])
             for item in tqdm.tqdm(data, desc=f"{section} section", dynamic_ncols=True):
                 to_add, validation_info = self.model_preprocessor.validate_item(item, section)
                 if to_add:

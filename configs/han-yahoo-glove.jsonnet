@@ -1,5 +1,5 @@
 local _base = import 'han-yahoo.libsonnet';
-local _data_path = 'data/yahoo_answers_csv';
+local _data_path = 'data/yahoo_answers_csv/';
 
 function(args, data_path=_data_path) _base(output_from=true, data_path=data_path) + {
     local lr = 0.000743552663260837,
@@ -27,7 +27,11 @@ function(args, data_path=_data_path) _base(output_from=true, data_path=data_path
             word_emb: {
                 name: 'glove',
                 kind: '42B',
-                lemmatize: true,
+            },
+            nlp: {
+                name: 'spaCy',
+                model: 'en_core_web_sm',
+                lemmatize: false,
             },
             min_freq: 5,
             max_count: 30000,

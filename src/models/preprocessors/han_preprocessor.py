@@ -4,20 +4,26 @@ import collections
 import itertools
 from typing import Tuple
 
+from src.nlp.abstract_embeddings import Embedder
+from src.nlp.abstract_nlp import NLP
 from src.models import abstract_preprocessor
 from src.utils import registry, vocab
-from src.datasets import HANItem
+from src.datasets.hanitem import HANItem
 
 
-@registry.register('preprocessor', 'han_preprocessor')
+@registry.register('preprocessor', 'HANPreprocessor')
 class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
-    def __init__(
-            self,
-            save_path,
-            min_freq=3,
-            max_count=5000,
-            word_emb="glove"):
-        self.word_emb = registry.construct('word_emb', word_emb)
+    def __init__(self, save_path, min_freq, max_count, word_emb, nlp):
+        self.word_emb: Embedder = registry.instantiate(
+            registry.lookup("word_emb", word_emb["name"]),
+            word_emb,
+            unused_keys=("name",),
+        )
+        self.nlp: NLP = registry.instantiate(
+            registry.lookup("nlp", nlp["name"]),
+            nlp,
+            unused_keys=("name",),
+        )
 
         self.data_dir = os.path.join(save_path, 'han')
         self.texts = collections.defaultdict(list)
@@ -50,12 +56,12 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
 
         return {
             "raw_sentences": item.sentences,
-            "sentences": itertools.chain(sentences),
+            "sentences": [sentence for sentence_list in sentences for sentence in sentence_list],
             "label": item.label
         }
 
     def _tokenize(self, sentence: str):
-        return self.word_emb.tokenize(sentence)
+        return self.nlp.tokenize(sentence)
 
     def save(self):
         os.makedirs(self.data_dir, exist_ok=True)
