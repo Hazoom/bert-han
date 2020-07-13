@@ -9,7 +9,7 @@ from src.utils import registry
 @registry.register("word_attention", "WordAttention")
 class WordAttention(torch.nn.Module):
     def __init__(
-            self, device: str, preprocessor: AbstractPreproc, word_emb_size, dropout, recurrent_size
+            self, device: str, preprocessor: AbstractPreproc, word_emb_size: int, dropout: float, recurrent_size: int
     ):
         super().__init__()
         self._device = device
@@ -35,3 +35,16 @@ class WordAttention(torch.nn.Module):
                 init_embed_list.append(self.embedding.weight[index])
         init_embed_weight = torch.stack(init_embed_list, 0)
         self.embedding.weight = nn.Parameter(init_embed_weight)
+
+        self.encoder = nn.LSTM(
+            input_size=self.word_emb_size,
+            hidden_size=self.recurrent_size,
+            dropout=self.dropout,
+            bidirectional=True,
+            batch_first=True,
+        )
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x, hidden):
+        inp = self.dropout(self.embedding(x))
+        return self.encoder(inp, hidden)

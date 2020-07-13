@@ -37,9 +37,9 @@ class CoreNLP(abstract_nlp.NLP):
     def tokenize(self, text: str):
         ann = self._annotate(text, self.corenlp_annotators)
         if self.lemmatize:
-            return [[tok.lemma.lower() for tok in sent.token] for sent in ann.sentence]
+            return [tok.lemma.lower() for sent in ann.sentence for tok in sent.token]
         else:
-            return [[tok.word.lower() for tok in sent.token] for sent in ann.sentence]
+            return [tok.word.lower() for sent in ann.sentence for tok in sent.token]
 
     def _annotate(self, text, annotators=None, output_format=None, properties=None):
         try:

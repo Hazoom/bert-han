@@ -1,8 +1,10 @@
 import argparse
 import json
+import logging
 
 import _jsonnet
-import tqdm
+import pypeln as pl
+from pathos.multiprocessing import cpu_count
 
 
 # These imports are needed for registry.lookup
@@ -20,6 +22,20 @@ from src.utils import registry
 from src.utils import vocab
 
 
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+
+def _add_item(index: int, item, section, model_preprocessor, total_length):
+    to_add, validation_info = model_preprocessor.validate_item(item, section)
+    if to_add:
+        model_preprocessor.add_item(item, section, validation_info)
+
+    if index and index % 10000 == 0:
+        logger.info(f"Finished pre-processing {index} out of {total_length}")
+
+
 class Preprocessor:
     def __init__(self, config):
         self.config = config
@@ -33,10 +49,19 @@ class Preprocessor:
         self.model_preprocessor.clear_items()
         for section in self.config['dataset']:
             data = registry.construct('dataset', self.config['dataset'][section])
-            for item in tqdm.tqdm(data, desc=f"pre-processing {section} section", dynamic_ncols=True):
-                to_add, validation_info = self.model_preprocessor.validate_item(item, section)
-                if to_add:
-                    self.model_preprocessor.add_item(item, section, validation_info)
+            data = [item for item in enumerate(data)]
+            workers = cpu_count()
+            logger.info(f"pr-processing section: {section}")
+            (
+                pl.process.each(
+                    lambda x: _add_item(x[0], x[1], section, self.model_preprocessor, len(data)),
+                    data,
+                    workers=workers,
+                    maxsize=0
+                )
+                | list
+            )
+            logger.info(f"Finished pre-processing {len(data)} out of {len(data)}")
         self.model_preprocessor.save()
 
 

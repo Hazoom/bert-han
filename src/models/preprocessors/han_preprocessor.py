@@ -50,7 +50,7 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         preprocessed = self.preprocess_item(item)
         self.texts[section].append(preprocessed)
 
-        if section == "train":
+        if section == "test":
             for sentence in preprocessed["sentences"]:
                 for token in sentence:
                     if token:
@@ -67,7 +67,7 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
 
         return {
             "raw_sentences": item.sentences,
-            "sentences": [sentence for sentence_list in sentences for sentence in sentence_list],
+            "sentences": sentences,
             "label": item.label
         }
 
