@@ -50,21 +50,21 @@ class AbstractPreproc(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def vocab(self) -> vocab.Vocab:
+    def get_vocab(self) -> vocab.Vocab:
         pass
 
     @abc.abstractmethod
-    def embedder(self) -> abstract_embeddings.Embedder:
+    def get_embedder(self) -> abstract_embeddings.Embedder:
         pass
 
     @abc.abstractmethod
-    def max_doc_length(self) -> int:
+    def get_max_doc_length(self) -> int:
         pass
 
     @abc.abstractmethod
-    def max_sent_length(self) -> int:
+    def get_max_sent_length(self) -> int:
         pass
 
     @abc.abstractmethod
-    def num_classes(self) -> int:
+    def get_num_classes(self) -> int:
         pass

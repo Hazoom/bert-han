@@ -58,7 +58,6 @@ function(output_from, data_path='data/yahoo_answers_csv/') {
 
     optimizer: {
         name: 'adam',
-        lr: 0.0,
     },
 
     lr_scheduler: {

@@ -41,19 +41,19 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         self.preprocessed_schemas = {}
         self.classes = {}
 
-    def vocab(self) -> vocab.Vocab:
-        return self.vocab()
+    def get_vocab(self) -> vocab.Vocab:
+        return self.vocab
 
-    def num_classes(self) -> int:
+    def get_num_classes(self) -> int:
         return len(self.classes.keys())
 
-    def embedder(self) -> abstract_embeddings.Embedder:
+    def get_embedder(self) -> abstract_embeddings.Embedder:
         return self.word_emb
 
-    def max_sent_length(self) -> int:
+    def get_max_sent_length(self) -> int:
         return self.max_sent_length
 
-    def max_doc_length(self) -> int:
+    def get_max_doc_length(self) -> int:
         return self.max_doc_length
 
     def validate_item(self, item: HANItem, section: str) -> Tuple[bool, str]:

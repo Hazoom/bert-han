@@ -13,7 +13,7 @@ import torch.utils.data
 # noinspection PyUnresolvedReferences
 from src.datasets import yahoo_dataset
 # noinspection PyUnresolvedReferences
-from src.models import han, wordattention, sentenceattention
+from src.models import han, wordattention, sentenceattention, optimizers
 # noinspection PyUnresolvedReferences
 from src.models.preprocessors import han_preprocessor
 # noinspection PyUnresolvedReferences
@@ -25,6 +25,7 @@ from src.utils import vocab
 
 from src.utils import registry, random_state
 from src.utils import saver as saver_mod
+from src.datasets.han_dataset import collate_fn
 
 
 def _yield_batches_from_epochs(loader):
@@ -96,15 +97,16 @@ class Trainer:
         with self.init_random:
             # Load preprocessors
             self.model_preprocessor = registry.instantiate(
-                registry.lookup("model", config["model"]).Preprocessor,
-                config["model"],
+                callable=registry.lookup("model", config["model"]).Preprocessor,
+                config=config["model"],
                 unused_keys=("model", "name", "sentence_attention", "word_attention"),
             )
             self.model_preprocessor.load()
 
             # Construct model
             self.model = registry.construct(
-                "model", config["model"],
+                kind="model",
+                config=config["model"],
                 unused_keys=("preprocessor",),
                 preprocessor=self.model_preprocessor,
                 device=self.device,
@@ -113,11 +115,15 @@ class Trainer:
 
     def train(self, config, model_dir):
         with self.init_random:
-            optimizer = registry.construct("optimizer", config["optimizer"], params=self.model.parameters())
+            optimizer = registry.construct(
+                kind="optimizer",
+                config=config["optimizer"],
+                params=self.model.parameters(),
+            )
             lr_scheduler = registry.construct(
-                "lr_scheduler",
-                config.get("lr_scheduler", {"name": "noop"}),
-                param_groups=optimizer.param_groups
+                kind="lr_scheduler",
+                config=config["lr_scheduler"],
+                param_groups=optimizer.param_groups,
             )
 
         # 2. Restore model parameters
@@ -136,17 +142,17 @@ class Trainer:
                     batch_size=self.train_config.batch_size,
                     shuffle=True,
                     drop_last=True,
-                    collate_fn=lambda x: x))
+                    collate_fn=collate_fn))
         train_eval_data_loader = torch.utils.data.DataLoader(
             train_data,
             batch_size=self.train_config.eval_batch_size,
-            collate_fn=lambda x: x)
+            collate_fn=collate_fn)
 
         val_data = self.model_preprocessor.dataset("val")
         val_data_loader = torch.utils.data.DataLoader(
             val_data,
             batch_size=self.train_config.eval_batch_size,
-            collate_fn=lambda x: x)
+            collate_fn=collate_fn)
 
         # 4. Start training loop
         with self.data_random:
@@ -158,15 +164,41 @@ class Trainer:
                 # Evaluate model
                 if last_step % self.train_config.eval_every_n == 0:
                     if self.train_config.eval_on_train:
-                        self._eval_model(self.logger, self.model, last_step, train_eval_data_loader, "train",
-                                         num_eval_items=self.train_config.num_eval_items)
+                        self._eval_model(
+                            self.logger,
+                            self.model,
+                            last_step,
+                            train_eval_data_loader,
+                            "train",
+                            num_eval_items=self.train_config.num_eval_items,
+                        )
                     if self.train_config.eval_on_val:
-                        self._eval_model(self.logger, self.model, last_step, val_data_loader, "val",
-                                         num_eval_items=self.train_config.num_eval_items)
+                        self._eval_model(
+                            self.logger,
+                            self.model,
+                            last_step,
+                            val_data_loader,
+                            "val",
+                            num_eval_items=self.train_config.num_eval_items,
+                        )
 
                 # Compute and apply gradient
                 with self.model_random:
-                    loss = self.model.compute_loss(batch)
+                    docs, labels, doc_lengths, sent_lengths = batch
+
+                    docs = docs.to(self.device)  # (batch_size, padded_doc_length, padded_sent_length)
+                    labels = labels.to(self.device)  # (batch_size)
+                    sent_lengths = sent_lengths.to(self.device)  # (batch_size, padded_doc_length)
+                    doc_lengths = doc_lengths.to(self.device)  # (batch_size)
+
+                    # scores: (n_docs, n_classes)
+                    # loss: float
+                    # word_att_weights: (n_docs, max_doc_len_in_batch, max_sent_len_in_batch)
+                    # sentence_att_weights: (n_docs, max_doc_len_in_batch)
+                    scores, loss, word_att_weights, sentence_att_weights = self.model(
+                        docs, doc_lengths, sent_lengths, labels
+                    )
+
                     loss.backward()
 
                     if self.train_config.clip_grad:
@@ -179,9 +211,16 @@ class Trainer:
 
                 # Report metrics
                 if last_step % self.train_config.report_every_n == 0:
-                    self.logger.log(f"Step {last_step}: loss={loss.item():.4f}")
+
+                    # Compute accuracy
+                    predictions = scores.max(dim=1)[1]
+                    correct_predictions = torch.eq(predictions, labels).sum().item()
+                    acc = correct_predictions
+
+                    self.logger.log(f"Step {last_step}: loss={loss.item():.4f} acc={acc:.4f}")
 
                 last_step += 1
+
                 # Run saver
                 if last_step == 1 or last_step % self.train_config.save_every_n == 0:
                     saver.save(model_dir, last_step)

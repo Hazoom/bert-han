@@ -5,6 +5,7 @@ function(args, data_path=_data_path) _base(output_from=true, data_path=data_path
     local lr = 0.000743552663260837,
     local end_lr = 0,
     local bs = 32,
+    local seed = 42,
 
     local lr_s = '%0.1e' % lr,
     local end_lr_s = '0e0',
@@ -38,6 +39,14 @@ function(args, data_path=_data_path) _base(output_from=true, data_path=data_path
             min_freq: 5,
             max_count: 30000,
         },
+    },
+
+    train+: {
+        batch_size: bs,
+
+        model_seed: seed,
+        data_seed:  seed,
+        init_seed:  seed,
     },
 
     lr_scheduler+: {

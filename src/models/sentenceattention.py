@@ -16,14 +16,14 @@ class SentenceAttention(torch.nn.Module):
         super().__init__()
         self._device = device
         self.preprocessor = preprocessor
-        self.embedder: abstract_embeddings.Embedder = self.preprocessor.embedder()
-        self.vocab: vocab.Vocab = self.preprocessor.vocab
+        self.embedder: abstract_embeddings.Embedder = self.preprocessor.get_embedder()
+        self.vocab: vocab.Vocab = self.preprocessor.get_vocab()
         self.word_emb_size = word_emb_size
         self.recurrent_size = recurrent_size
         self.dropout = dropout
 
         assert self.recurrent_size % 2 == 0
-        assert self.word_emb_size == self.preprocessor.embedder().dim
+        assert self.word_emb_size == self.embedder.dim
 
         # embedding layer
         self.embedding = torch.nn.Embedding(num_embeddings=len(self.vocab), embedding_dim=self.word_emb_size)

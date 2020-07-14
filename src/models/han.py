@@ -21,20 +21,20 @@ class HANModel(torch.nn.Module):
                 unused_keys=("name",)
             )
 
-        def vocab(self) -> vocab.Vocab:
-            return self.preprocessor.vocab()
+        def get_vocab(self) -> vocab.Vocab:
+            return self.preprocessor.get_vocab()
 
-        def embedder(self) -> abstract_embeddings.Embedder:
-            return self.embedder()
+        def get_embedder(self) -> abstract_embeddings.Embedder:
+            return self.get_embedder()
 
-        def num_classes(self) -> int:
-            pass
+        def get_num_classes(self) -> int:
+            return self.preprocessor.get_num_classes()
 
-        def max_doc_length(self) -> int:
-            return self.preprocessor.max_doc_length()
+        def get_max_doc_length(self) -> int:
+            return self.preprocessor.get_max_doc_length()
 
-        def max_sent_length(self) -> int:
-            return self.preprocessor.max_sent_length()
+        def get_max_sent_length(self) -> int:
+            return self.preprocessor.get_max_sent_length()
 
         def validate_item(self, item: HANItem, section: str) -> Tuple[bool, str]:
             item_result, validation_info = self.preprocessor.validate_item(item, section)
@@ -56,9 +56,9 @@ class HANModel(torch.nn.Module):
         def dataset(self, section) -> HANDataset:
             return HANDataset(
                 self.preprocessor.dataset(section),
-                self.vocab(),
-                self.max_sent_length(),
-                self.max_doc_length(),
+                self.get_vocab(),
+                self.get_max_sent_length(),
+                self.get_max_doc_length(),
             )
 
     def __init__(self, preprocessor, device, word_attention, sentence_attention):
@@ -79,42 +79,22 @@ class HANModel(torch.nn.Module):
             preprocessor=preprocessor.preprocessor
         )
 
-        self.fc = nn.Linear(self.sentence_attention.recurrent_size, preprocessor.preprocessor.num_classes())
+        self.fc = nn.Linear(self.sentence_attention.recurrent_size, preprocessor.preprocessor.get_num_classes())
 
-        self.compute_loss = self._compute_loss_batched
+        self.loss = nn.CrossEntropyLoss(reduction="mean").to(device)
 
-    def forward(self, docs, doc_lengths, sent_lengths):
+    def forward(self, docs, doc_lengths, sent_lengths, labels):
         """
         :param docs: encoded document-level data; LongTensor (num_docs, padded_doc_length, padded_sent_length)
         :param doc_lengths: unpadded document lengths; LongTensor (num_docs)
         :param sent_lengths: unpadded sentence lengths; LongTensor (num_docs, max_sent_len)
-        :return: class scores, attention weights of words, attention weights of sentences
+        :param labels: labels; LongTensor (num_docs)
+        :return: class scores, loss, attention weights of words, attention weights of sentences
         """
         doc_embeds, word_att_weights, sent_att_weights = self.sent_attention(docs, doc_lengths, sent_lengths)
 
         scores = self.fc(doc_embeds)
 
-        return scores, word_att_weights, sent_att_weights
+        loss = self.loss(scores, labels)
 
-    def _compute_loss_batched(self, batch, debug=False):
-        losses = []
-        enc_states = self.encoder([enc_input for enc_input, dec_output in batch])
-
-        for enc_state, (enc_input, dec_output) in zip(enc_states, batch):
-            loss = self.decoder.compute_loss(enc_input, dec_output, enc_state, debug)
-            losses.append(loss)
-        if debug:
-            return losses
-        else:
-            return torch.mean(torch.stack(losses, dim=0), dim=0)
-
-    def eval_on_batch(self, batch):
-        mean_loss = self.compute_loss(batch).item()
-        batch_size = len(batch)
-        result = {'loss': mean_loss * batch_size, 'total': batch_size}
-        return result
-
-    def begin_inference(self, orig_item, preproc_item):
-        enc_input, _ = preproc_item
-        enc_state, = self.encoder([enc_input])
-        return self.decoder.begin_inference(enc_state, orig_item)
+        return scores, loss, word_att_weights, sent_att_weights
