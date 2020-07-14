@@ -99,7 +99,9 @@ class Trainer:
             self.model_preprocessor = registry.instantiate(
                 callable=registry.lookup("model", config["model"]).Preprocessor,
                 config=config["model"],
-                unused_keys=("model", "name", "sentence_attention", "word_attention"),
+                unused_keys=(
+                    "model", "name", "sentence_attention", "word_attention", "final_layer_dim", "final_layer_dropout"
+                ),
             )
             self.model_preprocessor.load()
 
@@ -140,7 +142,7 @@ class Trainer:
                 torch.utils.data.DataLoader(
                     train_data,
                     batch_size=self.train_config.batch_size,
-                    shuffle=True,
+                    shuffle=False,
                     drop_last=True,
                     collate_fn=collate_fn))
         train_eval_data_loader = torch.utils.data.DataLoader(
@@ -148,7 +150,7 @@ class Trainer:
             batch_size=self.train_config.eval_batch_size,
             collate_fn=collate_fn)
 
-        val_data = self.model_preprocessor.dataset("val")
+        val_data = self.model_preprocessor.dataset("test")  #TODO: change to validation set
         val_data_loader = torch.utils.data.DataLoader(
             val_data,
             batch_size=self.train_config.eval_batch_size,
@@ -234,7 +236,7 @@ class Trainer:
         with torch.no_grad():
             for eval_batch in eval_data_loader:
                 docs, labels, doc_lengths, sent_lengths = eval_batch
-                batch_size = labels.size(0)
+                batch_size = len(labels)
 
                 docs = docs.to(self.device)  # (batch_size, padded_doc_length, padded_sent_length)
                 labels = labels.to(self.device)  # (batch_size)

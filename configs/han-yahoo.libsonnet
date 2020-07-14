@@ -41,6 +41,8 @@ function(output_from, data_path='data/yahoo_answers_csv/') {
             max_sent_length: 64,
             max_doc_length: 20,
         },
+        final_layer_dim: 50,
+        final_layer_dropout: 0.3,
     },
 
     train: {

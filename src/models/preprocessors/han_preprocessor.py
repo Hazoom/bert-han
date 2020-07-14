@@ -2,6 +2,7 @@ import os
 import json
 import collections
 from typing import Tuple
+import srsly
 
 from nlp import abstract_embeddings
 from src.nlp.abstract_embeddings import Embedder
@@ -82,7 +83,7 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
 
         return {
             "sentences": sentences,
-            "label": item.label,
+            "label": int(item.label),
         }
 
     def _tokenize(self, sentence: str):
@@ -99,9 +100,10 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
             json.dump(self.classes, out_fp)
 
         for section, texts in self.texts.items():
-            with open(os.path.join(self.data_dir, section + '.jsonl'), 'w') as f:
-                for text in texts:
-                    f.write(json.dumps(text) + "\n")
+            if section == "train":
+                # sort documents by the number of sentences for faster training
+                texts = sorted(texts, key=lambda x: len(x["sentences"]), reverse=True)
+            srsly.write_jsonl(os.path.join(self.data_dir, section + ".jsonl"), texts)
 
     def load(self):
         self.vocab = vocab.Vocab.load(self.vocab_path)
@@ -111,4 +113,4 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
             self.classes = json.load(in_fp)
 
     def dataset(self, section: str):
-        return [json.loads(line) for line in open(os.path.join(self.data_dir, section + '.jsonl'))]
+        return srsly.read_jsonl(os.path.join(self.data_dir, section + ".jsonl"))

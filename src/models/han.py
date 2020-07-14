@@ -18,7 +18,7 @@ class HANModel(torch.nn.Module):
             self.preprocessor: abstract_preprocessor.AbstractPreproc = registry.instantiate(
                 callable=registry.lookup("preprocessor", preprocessor["name"]),
                 config=preprocessor,
-                unused_keys=("name",)
+                unused_keys=("name", "final_layer_dim", "final_layer_dropout")
             )
 
         def get_vocab(self) -> vocab.Vocab:
@@ -61,7 +61,7 @@ class HANModel(torch.nn.Module):
                 self.get_max_doc_length(),
             )
 
-    def __init__(self, preprocessor, device, word_attention, sentence_attention):
+    def __init__(self, preprocessor, device, word_attention, sentence_attention, final_layer_dim, final_layer_dropout):
         super().__init__()
         self.preprocessor = preprocessor
         self.word_attention = registry.instantiate(
@@ -79,7 +79,12 @@ class HANModel(torch.nn.Module):
             preprocessor=preprocessor.preprocessor
         )
 
-        self.fc = nn.Linear(self.sentence_attention.recurrent_size, preprocessor.preprocessor.get_num_classes())
+        self.mlp = nn.Sequential(
+            torch.nn.Linear(
+                self.sentence_attention.recurrent_size, final_layer_dim
+            ), nn.ReLU(), nn.Dropout(final_layer_dropout),
+            torch.nn.Linear(final_layer_dim, self.preprocessor.get_num_classes())
+        )
 
         self.loss = nn.CrossEntropyLoss(reduction="mean").to(device)
 
@@ -91,9 +96,9 @@ class HANModel(torch.nn.Module):
         :param labels: labels; LongTensor (num_docs)
         :return: class scores, attention weights of words, attention weights of sentences, loss
         """
-        doc_embeds, word_att_weights, sent_att_weights = self.sent_attention(docs, doc_lengths, sent_lengths)
+        doc_embeds, word_att_weights, sent_att_weights = self.sentence_attention(docs, doc_lengths, sent_lengths)
 
-        scores = self.fc(doc_embeds)
+        scores = self.mlp(doc_embeds)
 
         outputs = (scores, word_att_weights, sent_att_weights,)
 

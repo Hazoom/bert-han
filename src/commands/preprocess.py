@@ -32,7 +32,7 @@ class Preprocessor:
         self.model_preprocessor = registry.instantiate(
             callable=registry.lookup("model", config["model"]).Preprocessor,
             config=config["model"],
-            unused_keys=("sentence_attention", "word_attention", "name"),
+            unused_keys=("sentence_attention", "word_attention", "name", "final_layer_dim", "final_layer_dropout"),
         )
 
     def preprocess(self):

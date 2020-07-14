@@ -53,9 +53,14 @@ def collate_fn(batch):
 
     for doc_idx, doc in enumerate(docs):
         doc_length = doc_lengths[doc_idx]
-        sent_lengths_tensor[doc_idx, :doc_length] = torch.LongTensor(sent_lengths[doc_idx])
+        sent_lengths_tensor[doc_idx, :doc_length] = torch.tensor(sent_lengths[doc_idx], dtype=torch.long)
         for sent_idx, sent in enumerate(doc):
             sent_length = sent_lengths[doc_idx][sent_idx]
-            docs_tensor[doc_idx, sent_idx, :sent_length] = torch.LongTensor(sent)
+            docs_tensor[doc_idx, sent_idx, :sent_length] = torch.tensor(sent, dtype=torch.long)
 
-    return docs_tensor, torch.LongTensor(labels), torch.LongTensor(doc_lengths), sent_lengths_tensor
+    return (
+        docs_tensor,
+        torch.tensor(labels, dtype=torch.long),
+        torch.tensor(doc_lengths, dtype=torch.long),
+        sent_lengths_tensor
+    )
