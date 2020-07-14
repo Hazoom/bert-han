@@ -14,8 +14,7 @@ from src.nlp import textcleaning
 
 @registry.register('preprocessor', 'HANPreprocessor')
 class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
-
-    def __init__(self, save_path, min_freq, max_count, word_emb, nlp):
+    def __init__(self, save_path, min_freq, max_count, word_emb, nlp, max_sent_length, max_doc_length):
         self.word_emb: Embedder = registry.instantiate(
             registry.lookup("word_emb", word_emb["name"]),
             word_emb,
@@ -27,21 +26,35 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
             unused_keys=("name",),
         )
 
+        self.max_doc_length = max_doc_length
+        self.max_sent_length = max_sent_length
+
         self.data_dir = os.path.join(save_path, "tokenized_data")
         self.texts = collections.defaultdict(list)
 
         self.vocab_builder = vocab.VocabBuilder(min_freq, max_count)
         self.vocab_path = os.path.join(save_path, 'han_vocab.json')
         self.vocab_word_freq_path = os.path.join(save_path, 'han_word_freq.json')
+        self.classes_path = os.path.join(save_path, 'classes.json')
         self.vocab = None
         self.counted_db_ids = set()
         self.preprocessed_schemas = {}
+        self.classes = {}
 
     def vocab(self) -> vocab.Vocab:
         return self.vocab()
 
+    def num_classes(self) -> int:
+        return len(self.classes.keys())
+
     def embedder(self) -> abstract_embeddings.Embedder:
         return self.word_emb
+
+    def max_sent_length(self) -> int:
+        return self.max_sent_length
+
+    def max_doc_length(self) -> int:
+        return self.max_doc_length
 
     def validate_item(self, item: HANItem, section: str) -> Tuple[bool, str]:
         return True, ""
@@ -49,6 +62,8 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
     def add_item(self, item: HANItem, section: str, validation_info: str):
         preprocessed = self.preprocess_item(item)
         self.texts[section].append(preprocessed)
+        if preprocessed["label"] not in self.classes:
+            self.classes[preprocessed["label"]] = preprocessed["label"]
 
         if section == "test":
             for sentence in preprocessed["sentences"]:
@@ -80,6 +95,9 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         self.vocab.save(self.vocab_path)
         self.vocab_builder.save(self.vocab_word_freq_path)
 
+        with open(self.classes_path, "w") as out_fp:
+            json.dump(self.classes, out_fp)
+
         for section, texts in self.texts.items():
             with open(os.path.join(self.data_dir, section + '.jsonl'), 'w') as f:
                 for text in texts:
@@ -88,6 +106,9 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
     def load(self):
         self.vocab = vocab.Vocab.load(self.vocab_path)
         self.vocab_builder.load(self.vocab_word_freq_path)
+
+        with open(self.classes_path, "r") as in_fp:
+            self.classes = json.load(in_fp)
 
     def dataset(self, section: str):
         return [json.loads(line) for line in open(os.path.join(self.data_dir, section + '.jsonl'))]

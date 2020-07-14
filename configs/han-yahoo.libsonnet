@@ -38,6 +38,8 @@ function(output_from, data_path='data/yahoo_answers_csv/') {
             max_count: 30000,
 
             save_path: PREFIX + 'han,output_from=%s,emb=glove-42B/' % [output_from],
+            max_sent_length: 64,
+            max_doc_length: 20,
         },
     },
 

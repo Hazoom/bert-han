@@ -1,4 +1,5 @@
 import abc
+from typing import List, Dict
 
 
 from src.utils import vocab
@@ -44,7 +45,7 @@ class AbstractPreproc(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def dataset(self, section):
+    def dataset(self, section) -> List[Dict]:
         """Returns a torch.data.utils.Dataset instance."""
         pass
 
@@ -54,4 +55,16 @@ class AbstractPreproc(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def embedder(self) -> abstract_embeddings.Embedder:
+        pass
+
+    @abc.abstractmethod
+    def max_doc_length(self) -> int:
+        pass
+
+    @abc.abstractmethod
+    def max_sent_length(self) -> int:
+        pass
+
+    @abc.abstractmethod
+    def num_classes(self) -> int:
         pass
