@@ -16,8 +16,8 @@ class HANModel(torch.nn.Module):
             super().__init__()
 
             self.preprocessor: abstract_preprocessor.AbstractPreproc = registry.instantiate(
-                registry.lookup('preprocessor', preprocessor['name']),
-                preprocessor,
+                callable=registry.lookup("preprocessor", preprocessor["name"]),
+                config=preprocessor,
                 unused_keys=("name",)
             )
 
@@ -64,14 +64,24 @@ class HANModel(torch.nn.Module):
     def __init__(self, preprocessor, device, word_attention, sentence_attention):
         super().__init__()
         self.preprocessor = preprocessor
-        self.word_attention = registry.construct(
-            'word_attention', word_attention, device=device, preproc=preprocessor.preprocessor)
-        self.sentence_attention = registry.construct(
-            'sentence_attention', sentence_attention, device=device, preproc=preprocessor.preprocessor)
+        self.word_attention = registry.instantiate(
+            callable=registry.lookup("word_attention", word_attention["name"]),
+            config=word_attention,
+            unused_keys=("name",),
+            device=device,
+            preprocessor=preprocessor.preprocessor
+        )
+        self.sentence_attention = registry.instantiate(
+            callable=registry.lookup("sentence_attention", sentence_attention["name"]),
+            config=sentence_attention,
+            unused_keys=("name",),
+            device=device,
+            preprocessor=preprocessor.preprocessor
+        )
 
-        self.fc = nn.Linear(self.sentence_attention.recurrent_size(), preprocessor.preprocessor.num_classes())
+        self.fc = nn.Linear(self.sentence_attention.recurrent_size, preprocessor.preprocessor.num_classes())
 
-        self.compute_loss = self._compute_loss_enc_batched
+        self.compute_loss = self._compute_loss_batched
 
     def forward(self, docs, doc_lengths, sent_lengths):
         """

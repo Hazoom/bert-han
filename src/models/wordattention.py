@@ -3,6 +3,8 @@ import torch
 
 from src.models.abstract_preprocessor import AbstractPreproc
 
+from src.utils import vocab
+from src.nlp import abstract_embeddings
 from src.utils import registry
 
 
@@ -14,8 +16,8 @@ class WordAttention(torch.nn.Module):
         super().__init__()
         self._device = device
         self.preprocessor = preprocessor
-        self.embedder = self.preprocessor.embedder()
-        self.vocab = preprocessor.vocab()
+        self.embedder: abstract_embeddings.Embedder = self.preprocessor.embedder()
+        self.vocab: vocab.Vocab = self.preprocessor.vocab
         self.word_emb_size = word_emb_size
         self.recurrent_size = recurrent_size
         self.dropout = dropout

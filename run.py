@@ -7,7 +7,7 @@ import _jsonnet
 import attr
 
 
-from src.commands import preprocess
+from src.commands import preprocess, train
 
 
 @attr.s
@@ -20,7 +20,7 @@ class PreprocessConfig:
 class TrainConfig:
     config = attr.ib()
     config_args = attr.ib()
-    log_dir = attr.ib()
+    logdir = attr.ib()
 
 
 def main():
@@ -50,9 +50,10 @@ def main():
         preprocess_config = PreprocessConfig(model_config_file, model_config_args)
         preprocess.main(preprocess_config)
     elif args.mode == "train":
-        train_config = TrainConfig(model_config_file,
-                                   model_config_args, log_dir)
+        train_config = TrainConfig(model_config_file, model_config_args, log_dir)
         train.main(train_config)
+    else:
+        raise ValueError(f"command {args.mode} is not supported")
 
 
 if __name__ == "__main__":

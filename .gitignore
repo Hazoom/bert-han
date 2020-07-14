@@ -138,3 +138,5 @@ cache/
 .vector_cache/
 
 third_party/
+
+logdir/

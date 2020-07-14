@@ -3,10 +3,12 @@ import torch
 
 from src.models.abstract_preprocessor import AbstractPreproc
 
+from src.utils import vocab
+from src.nlp import abstract_embeddings
 from src.utils import registry
 
 
-@registry.register("sentence_attention", "SentencesAttention")
+@registry.register("sentence_attention", "SentenceAttention")
 class SentenceAttention(torch.nn.Module):
     def __init__(
             self, device: str, preprocessor: AbstractPreproc, word_emb_size: int, dropout: float, recurrent_size: int
@@ -14,8 +16,8 @@ class SentenceAttention(torch.nn.Module):
         super().__init__()
         self._device = device
         self.preprocessor = preprocessor
-        self.embedder = self.preprocessor.embedder()
-        self.vocab = preprocessor.vocab()
+        self.embedder: abstract_embeddings.Embedder = self.preprocessor.embedder()
+        self.vocab: vocab.Vocab = self.preprocessor.vocab
         self.word_emb_size = word_emb_size
         self.recurrent_size = recurrent_size
         self.dropout = dropout

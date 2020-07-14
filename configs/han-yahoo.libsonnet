@@ -68,5 +68,9 @@ function(output_from, data_path='data/yahoo_answers_csv/') {
         end_lr: 0,
         decay_steps: $.train.max_steps - self.num_warmup_steps,
         power: 0.5,
+    },
+
+    log: {
+        reopen_to_flush: true,
     }
 }

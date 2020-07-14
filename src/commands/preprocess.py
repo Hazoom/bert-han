@@ -30,15 +30,15 @@ class Preprocessor:
     def __init__(self, config):
         self.config = config
         self.model_preprocessor = registry.instantiate(
-            registry.lookup('model', config['model']).Preprocessor,
-            config['model'],
+            callable=registry.lookup("model", config["model"]).Preprocessor,
+            config=config["model"],
             unused_keys=("sentence_attention", "word_attention", "name"),
         )
 
     def preprocess(self):
         self.model_preprocessor.clear_items()
-        for section in self.config['dataset']:
-            data = registry.construct('dataset', self.config['dataset'][section])
+        for section in self.config["dataset"]:
+            data = registry.construct("dataset", self.config["dataset"][section])
             for item in tqdm.tqdm(data, desc=f"pre-processing {section} section", dynamic_ncols=True):
                 to_add, validation_info = self.model_preprocessor.validate_item(item, section)
                 if to_add:
@@ -48,15 +48,15 @@ class Preprocessor:
 
 def add_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', required=True)
-    parser.add_argument('--config-args')
+    parser.add_argument("--config", required=True)
+    parser.add_argument("--config-args")
     args = parser.parse_args()
     return args
 
 
 def main(args):
     if args.config_args:
-        config = json.loads(_jsonnet.evaluate_file(args.config, tla_codes={'args': args.config_args}))
+        config = json.loads(_jsonnet.evaluate_file(args.config, tla_codes={"args": args.config_args}))
     else:
         config = json.loads(_jsonnet.evaluate_file(args.config))
 

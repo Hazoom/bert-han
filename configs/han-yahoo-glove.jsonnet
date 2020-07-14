@@ -4,7 +4,7 @@ local _data_path = 'data/yahoo_answers_csv/';
 function(args, data_path=_data_path) _base(output_from=true, data_path=data_path) + {
     local lr = 0.000743552663260837,
     local end_lr = 0,
-    local bs = 20,
+    local bs = 32,
 
     local lr_s = '%0.1e' % lr,
     local end_lr_s = '0e0',
