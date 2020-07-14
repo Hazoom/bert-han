@@ -83,18 +83,22 @@ class HANModel(torch.nn.Module):
 
         self.loss = nn.CrossEntropyLoss(reduction="mean").to(device)
 
-    def forward(self, docs, doc_lengths, sent_lengths, labels):
+    def forward(self, docs, doc_lengths, sent_lengths, labels=None):
         """
         :param docs: encoded document-level data; LongTensor (num_docs, padded_doc_length, padded_sent_length)
         :param doc_lengths: unpadded document lengths; LongTensor (num_docs)
         :param sent_lengths: unpadded sentence lengths; LongTensor (num_docs, max_sent_len)
         :param labels: labels; LongTensor (num_docs)
-        :return: class scores, loss, attention weights of words, attention weights of sentences
+        :return: class scores, attention weights of words, attention weights of sentences, loss
         """
         doc_embeds, word_att_weights, sent_att_weights = self.sent_attention(docs, doc_lengths, sent_lengths)
 
         scores = self.fc(doc_embeds)
 
-        loss = self.loss(scores, labels)
+        outputs = (scores, word_att_weights, sent_att_weights,)
 
-        return scores, loss, word_att_weights, sent_att_weights
+        if labels:
+            loss = self.loss(scores, labels)
+            return outputs + (loss,)
+
+        return outputs

@@ -192,10 +192,10 @@ class Trainer:
                     doc_lengths = doc_lengths.to(self.device)  # (batch_size)
 
                     # scores: (n_docs, n_classes)
-                    # loss: float
                     # word_att_weights: (n_docs, max_doc_len_in_batch, max_sent_len_in_batch)
                     # sentence_att_weights: (n_docs, max_doc_len_in_batch)
-                    scores, loss, word_att_weights, sentence_att_weights = self.model(
+                    # loss: float
+                    scores, word_att_weights, sentence_att_weights, loss = self.model(
                         docs, doc_lengths, sent_lengths, labels
                     )
 
@@ -228,15 +228,37 @@ class Trainer:
             # Save final model
             saver.save(model_dir, last_step)
 
-    @staticmethod
-    def _eval_model(logger, model, last_step, eval_data_loader, eval_section, num_eval_items=None):
+    def _eval_model(self, logger, model, last_step, eval_data_loader, eval_section, num_eval_items=None):
         stats = collections.defaultdict(float)
         model.eval()
         with torch.no_grad():
             for eval_batch in eval_data_loader:
-                batch_res = model.eval_on_batch(eval_batch)
-                for k, v in batch_res.items():
-                    stats[k] += v
+                docs, labels, doc_lengths, sent_lengths = eval_batch
+                batch_size = labels.size(0)
+
+                docs = docs.to(self.device)  # (batch_size, padded_doc_length, padded_sent_length)
+                labels = labels.to(self.device)  # (batch_size)
+                sent_lengths = sent_lengths.to(self.device)  # (batch_size, padded_doc_length)
+                doc_lengths = doc_lengths.to(self.device)  # (batch_size)
+
+                # scores: (n_docs, n_classes)
+                # loss: float
+                # word_att_weights: (n_docs, max_doc_len_in_batch, max_sent_len_in_batch)
+                # sentence_att_weights: (n_docs, max_doc_len_in_batch)
+                scores, _, _, loss = self.model(
+                    docs, doc_lengths, sent_lengths, labels
+                )
+
+                predictions = scores.max(dim=1)[1]
+                acc = torch.eq(predictions, labels).sum().item()
+
+                mean_loss = loss * batch_size
+                mean_acc = acc * batch_size
+
+                stats["loss"] += mean_loss
+                stats["acc"] += mean_acc
+                stats["total"] += batch_size
+
                 if num_eval_items and stats["total"] > num_eval_items:
                     break
         model.train()
@@ -279,8 +301,8 @@ def main(args):
     # Save the config info
     with open(
             os.path.join(log_dir, f"config-{datetime.datetime.now().strftime('%Y%m%dT%H%M%S%Z')}.json"), "w"
-    ) as f:
-        json.dump(config, f, sort_keys=True, indent=4)
+    ) as out_fp:
+        json.dump(config, out_fp, sort_keys=True, indent=4)
 
     logger.log(f"Logging to {log_dir}")
 
