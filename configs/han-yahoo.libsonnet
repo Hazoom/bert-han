@@ -18,11 +18,15 @@ function(output_from, data_path='data/yahoo_answers_csv/') {
             name: 'WordAttention',
             dropout: 0.2,
             word_emb_size: 300,
+            recurrent_size: 256,
+            attention_dim: 256,
         },   
         sentence_attention: {
             name: 'SentenceAttention',
             dropout: 0.2,
-            word_emb_size: 300,
+            word_recurrent_size: 256,
+            recurrent_size: 256,
+            attention_dim: 256,
         },
         preprocessor: {
             name: 'HANPreprocessor',

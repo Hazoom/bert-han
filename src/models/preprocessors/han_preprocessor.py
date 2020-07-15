@@ -113,4 +113,4 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
             self.classes = json.load(in_fp)
 
     def dataset(self, section: str):
-        return srsly.read_jsonl(os.path.join(self.data_dir, section + ".jsonl"))
+        return list(srsly.read_jsonl(os.path.join(self.data_dir, section + ".jsonl")))

@@ -76,7 +76,6 @@ class HANModel(torch.nn.Module):
             config=sentence_attention,
             unused_keys=("name",),
             device=device,
-            preprocessor=preprocessor.preprocessor
         )
 
         self.mlp = nn.Sequential(
@@ -96,13 +95,22 @@ class HANModel(torch.nn.Module):
         :param labels: labels; LongTensor (num_docs)
         :return: class scores, attention weights of words, attention weights of sentences, loss
         """
-        doc_embeds, word_att_weights, sent_att_weights = self.sentence_attention(docs, doc_lengths, sent_lengths)
+
+        # get sentence embedding for each sentence by passing it in the word attention model
+        sent_embeddings, doc_perm_idx, docs_valid_bsz, word_att_weights = self.word_attention(
+            docs, doc_lengths, sent_lengths
+        )
+
+        # get document embedding for each document by passing the sentence embeddings in the sentence attention model
+        doc_embeds, word_att_weights, sentence_att_weights = self.sentence_attention(
+            sent_embeddings, doc_perm_idx, docs_valid_bsz, word_att_weights
+        )
 
         scores = self.mlp(doc_embeds)
 
-        outputs = (scores, word_att_weights, sent_att_weights,)
+        outputs = (scores, word_att_weights, sentence_att_weights,)
 
-        if labels:
+        if labels is not None:
             loss = self.loss(scores, labels)
             return outputs + (loss,)
 

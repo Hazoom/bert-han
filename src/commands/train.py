@@ -164,7 +164,7 @@ class Trainer:
                     break
 
                 # Evaluate model
-                if last_step % self.train_config.eval_every_n == 0:
+                if last_step > 0 and last_step % self.train_config.eval_every_n == 0:
                     if self.train_config.eval_on_train:
                         self._eval_model(
                             self.logger,
