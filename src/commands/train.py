@@ -11,7 +11,7 @@ import torch.utils.data
 
 # These imports are needed for registry.lookup
 # noinspection PyUnresolvedReferences
-from src.datasets import yahoo_dataset
+from src.datasets import yahoo_dataset, ag_news_dataset
 # noinspection PyUnresolvedReferences
 from src.models import han, wordattention, sentenceattention, optimizers
 # noinspection PyUnresolvedReferences
@@ -37,7 +37,6 @@ def _yield_batches_from_epochs(loader):
 @attr.s
 class TrainConfig:
     eval_every_n = attr.ib(default=100)
-    report_every_n = attr.ib(default=100)
     save_every_n = attr.ib(default=100)
     keep_every_n = attr.ib(default=1000)
 
@@ -211,15 +210,6 @@ class Trainer:
                     lr_scheduler.update_lr(last_step)
                     optimizer.zero_grad()
 
-                # Report metrics
-                if last_step > 0 and last_step % self.train_config.report_every_n == 0:
-
-                    # Compute accuracy
-                    predictions = scores.max(dim=1)[1]
-                    acc = torch.eq(predictions, labels).mean().item()
-
-                    self.logger.log(f"Step {last_step}: loss={loss.item():.4f} acc={acc:.4f}")
-
                 last_step += 1
 
                 # Run saver
@@ -251,7 +241,8 @@ class Trainer:
                 )
 
                 predictions = scores.max(dim=1)[1]
-                acc = torch.eq(predictions, labels).mean().item()
+                acc = torch.eq(predictions, labels).sum().item()
+                acc = acc / len(labels)
 
                 mean_loss = loss * batch_size
                 mean_acc = acc * batch_size

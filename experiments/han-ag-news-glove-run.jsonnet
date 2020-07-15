@@ -1,6 +1,6 @@
 {
-    logdir: "logdir/yahoo_glove_run",
-    model_config: "configs/han-yahoo-glove.jsonnet",
+    logdir: "logdir/ag_news_glove_run",
+    model_config: "configs/han-ag-news-glove.jsonnet",
     model_config_args: {
     },
 

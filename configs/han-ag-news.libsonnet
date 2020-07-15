@@ -1,13 +1,13 @@
-function(output_from, data_path='data/yahoo_answers_csv/') {
+function(output_from, data_path='data/ag_news_csv/') {
     local PREFIX = data_path,
     
     dataset: {
         train: {
-            name: 'yahoo_answers',
+            name: 'ag_news',
             path: PREFIX + 'train.csv',
         },
         test: {
-            name: 'yahoo_answers',
+            name: 'ag_news',
             path: PREFIX + 'test.csv',
         },
     },
