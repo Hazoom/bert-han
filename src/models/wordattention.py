@@ -101,7 +101,7 @@ class WordAttention(torch.nn.Module):
         packed_words = pack_padded_sequence(inp, lengths=sent_lengths.tolist(), batch_first=True)
 
         # effective batch size at each timestep
-        valid_bsz = packed_words.batch_sizes
+        sentences_valid_bsz = packed_words.batch_sizes
 
         # Apply word-level LSTM over word embeddings
         packed_words, _ = self.encoder(packed_words)
@@ -112,7 +112,7 @@ class WordAttention(torch.nn.Module):
         att = torch.exp(u_w - val)
 
         # Restore as sentences by repadding
-        att, _ = pad_packed_sequence(PackedSequence(att, valid_bsz), batch_first=True)
+        att, _ = pad_packed_sequence(PackedSequence(att, sentences_valid_bsz), batch_first=True)
 
         att_weights = att / torch.sum(att, dim=1, keepdim=True)
 

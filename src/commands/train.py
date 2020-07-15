@@ -212,12 +212,11 @@ class Trainer:
                     optimizer.zero_grad()
 
                 # Report metrics
-                if last_step % self.train_config.report_every_n == 0:
+                if last_step > 0 and last_step % self.train_config.report_every_n == 0:
 
                     # Compute accuracy
                     predictions = scores.max(dim=1)[1]
-                    correct_predictions = torch.eq(predictions, labels).sum().item()
-                    acc = correct_predictions
+                    acc = torch.eq(predictions, labels).mean().item()
 
                     self.logger.log(f"Step {last_step}: loss={loss.item():.4f} acc={acc:.4f}")
 
@@ -252,7 +251,7 @@ class Trainer:
                 )
 
                 predictions = scores.max(dim=1)[1]
-                acc = torch.eq(predictions, labels).sum().item()
+                acc = torch.eq(predictions, labels).mean().item()
 
                 mean_loss = loss * batch_size
                 mean_acc = acc * batch_size

@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from typing import Tuple
+from typing import Tuple, Dict
 
 from src.nlp import abstract_embeddings
 from src.models import abstract_preprocessor
@@ -23,6 +23,9 @@ class HANModel(torch.nn.Module):
 
         def get_vocab(self) -> vocab.Vocab:
             return self.preprocessor.get_vocab()
+
+        def get_dataset_size(self, section: str) -> int:
+            return self.preprocessor.get_dataset_size(section)
 
         def get_embedder(self) -> abstract_embeddings.Embedder:
             return self.get_embedder()
@@ -53,12 +56,18 @@ class HANModel(torch.nn.Module):
         def load(self) -> None:
             self.preprocessor.load()
 
+        def label_to_id_map(self) -> Dict:
+            return self.preprocessor.label_to_id_map()
+
         def dataset(self, section) -> HANDataset:
             return HANDataset(
                 self.preprocessor.dataset(section),
+                self.label_to_id_map(),
                 self.get_vocab(),
                 self.get_max_sent_length(),
                 self.get_max_doc_length(),
+                self.get_num_classes(),
+                self.get_dataset_size(section),
             )
 
     def __init__(self, preprocessor, device, word_attention, sentence_attention, final_layer_dim, final_layer_dropout):

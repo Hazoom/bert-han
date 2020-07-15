@@ -68,3 +68,11 @@ class AbstractPreproc(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_num_classes(self) -> int:
         pass
+
+    @abc.abstractmethod
+    def label_to_id_map(self) -> Dict:
+        pass
+
+    @abc.abstractmethod
+    def get_dataset_size(self, section: str) -> int:
+        pass

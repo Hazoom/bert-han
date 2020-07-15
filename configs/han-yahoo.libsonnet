@@ -50,7 +50,7 @@ function(output_from, data_path='data/yahoo_answers_csv/') {
     },
 
     train: {
-        batch_size: 10,
+        batch_size: 32,
         eval_batch_size: 50,
 
         keep_every_n: 1000,

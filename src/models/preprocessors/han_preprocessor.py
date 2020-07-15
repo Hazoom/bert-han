@@ -1,7 +1,7 @@
 import os
 import json
 import collections
-from typing import Tuple
+from typing import Tuple, Dict
 import srsly
 
 from nlp import abstract_embeddings
@@ -15,6 +15,7 @@ from src.nlp import textcleaning
 
 @registry.register('preprocessor', 'HANPreprocessor')
 class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
+
     def __init__(self, save_path, min_freq, max_count, word_emb, nlp, max_sent_length, max_doc_length):
         self.word_emb: Embedder = registry.instantiate(
             registry.lookup("word_emb", word_emb["name"]),
@@ -34,19 +35,24 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         self.texts = collections.defaultdict(list)
 
         self.vocab_builder = vocab.VocabBuilder(min_freq, max_count)
-        self.vocab_path = os.path.join(save_path, 'han_vocab.json')
-        self.vocab_word_freq_path = os.path.join(save_path, 'han_word_freq.json')
-        self.classes_path = os.path.join(save_path, 'classes.json')
+        self.vocab_path = os.path.join(save_path, "han_vocab.json")
+        self.vocab_word_freq_path = os.path.join(save_path, "han_word_freq.json")
+        self.classes_path = os.path.join(save_path, "classes.json")
+        self.dataset_sizes_path = os.path.join(save_path, "dataset_sizes.json")
         self.vocab = None
         self.counted_db_ids = set()
         self.preprocessed_schemas = {}
-        self.classes = {}
+        self.label_to_id = {}
+        self.dataset_sizes = {}
 
     def get_vocab(self) -> vocab.Vocab:
         return self.vocab
 
+    def get_dataset_size(self, section: str) -> int:
+        return self.dataset_sizes[section]
+
     def get_num_classes(self) -> int:
-        return len(self.classes.keys())
+        return len(self.label_to_id)
 
     def get_embedder(self) -> abstract_embeddings.Embedder:
         return self.word_emb
@@ -63,8 +69,8 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
     def add_item(self, item: HANItem, section: str, validation_info: str):
         preprocessed = self.preprocess_item(item)
         self.texts[section].append(preprocessed)
-        if preprocessed["label"] not in self.classes:
-            self.classes[preprocessed["label"]] = preprocessed["label"]
+        if preprocessed["label"] not in self.label_to_id:
+            self.label_to_id[preprocessed["label"]] = len(self.label_to_id)
 
         if section == "test":
             for sentence in preprocessed["sentences"]:
@@ -97,7 +103,10 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         self.vocab_builder.save(self.vocab_word_freq_path)
 
         with open(self.classes_path, "w") as out_fp:
-            json.dump(self.classes, out_fp)
+            json.dump(self.label_to_id, out_fp)
+
+        with open(self.dataset_sizes_path, "w") as out_fp:
+            json.dump({section: len(texts) for section, texts in self.texts.items()}, out_fp)
 
         for section, texts in self.texts.items():
             if section == "train":
@@ -110,7 +119,13 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         self.vocab_builder.load(self.vocab_word_freq_path)
 
         with open(self.classes_path, "r") as in_fp:
-            self.classes = json.load(in_fp)
+            self.label_to_id = json.load(in_fp)
+
+        with open(self.dataset_sizes_path, "r") as in_fp:
+            self.dataset_sizes = json.load(in_fp)
+
+    def label_to_id_map(self) -> Dict:
+        return self.label_to_id
 
     def dataset(self, section: str):
         return list(srsly.read_jsonl(os.path.join(self.data_dir, section + ".jsonl")))
