@@ -4,7 +4,6 @@ import collections
 from typing import Tuple, Dict
 import srsly
 
-from nlp import abstract_embeddings
 from src.nlp.abstract_embeddings import Embedder
 from src.nlp.abstract_nlp import NLP
 from src.models import abstract_preprocessor
@@ -54,7 +53,7 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
     def get_num_classes(self) -> int:
         return len(self.label_to_id)
 
-    def get_embedder(self) -> abstract_embeddings.Embedder:
+    def get_embedder(self) -> Embedder:
         return self.word_emb
 
     def get_max_sent_length(self) -> int:

@@ -42,6 +42,8 @@ class TrainConfig:
 
     batch_size = attr.ib(default=32)
     eval_batch_size = attr.ib(default=32)
+    num_train_eval_items = attr.ib(default=50)
+    num_eval_eval_items = attr.ib(default=None)
     max_steps = attr.ib(default=100000)
     num_eval_items = attr.ib(default=None)
     eval_on_train = attr.ib(default=True)
@@ -171,7 +173,7 @@ class Trainer:
                             last_step,
                             train_eval_data_loader,
                             "train",
-                            num_eval_items=self.train_config.num_eval_items,
+                            num_eval_items=self.train_config.num_train_eval_items,
                         )
                     if self.train_config.eval_on_val:
                         self._eval_model(
@@ -180,7 +182,7 @@ class Trainer:
                             last_step,
                             val_data_loader,
                             "val",
-                            num_eval_items=self.train_config.num_eval_items,
+                            num_eval_items=self.train_config.num_eval_eval_items,
                         )
 
                 # Compute and apply gradient
@@ -212,9 +214,24 @@ class Trainer:
 
                 last_step += 1
 
-                # Run saver
-                if last_step == 1 or last_step % self.train_config.save_every_n == 0:
-                    saver.save(model_dir, last_step)
+            if self.train_config.eval_on_train:
+                self._eval_model(
+                    self.logger,
+                    self.model,
+                    last_step,
+                    train_eval_data_loader,
+                    "train",
+                    num_eval_items=self.train_config.num_train_eval_items,
+                )
+            if self.train_config.eval_on_val:
+                self._eval_model(
+                    self.logger,
+                    self.model,
+                    last_step,
+                    val_data_loader,
+                    "val",
+                    num_eval_items=self.train_config.num_eval_eval_items,
+                )
 
             # Save final model
             saver.save(model_dir, last_step)
@@ -242,7 +259,7 @@ class Trainer:
 
                 predictions = scores.max(dim=1)[1]
                 acc = torch.eq(predictions, labels).sum().item()
-                acc = acc / len(labels)
+                acc = acc / float(len(labels))
 
                 mean_loss = loss * batch_size
                 mean_acc = acc * batch_size
@@ -262,7 +279,7 @@ class Trainer:
         if "total" in stats:
             del stats["total"]
 
-        kv_stats = ", ".join(f"{k} = {v}" for k, v in stats.items())
+        kv_stats = ", ".join(f"{k} = {v:.4f}" for k, v in stats.items())
         logger.log(f"Step {last_step} stats, {eval_section}: {kv_stats}")
 
 

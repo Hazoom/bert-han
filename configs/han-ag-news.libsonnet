@@ -57,8 +57,8 @@ function(output_from, data_path='data/ag_news_csv/') {
         eval_every_n: 100,
         save_every_n: 100,
 
-        max_steps: 800,
-        num_eval_items: 50,
+        max_steps: 30000,
+        num_train_eval_items: 50,
     },
 
     optimizer: {

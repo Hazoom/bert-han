@@ -60,6 +60,7 @@ class HANModel(torch.nn.Module):
             return self.preprocessor.label_to_id_map()
 
         def dataset(self, section) -> HANDataset:
+            print(f"Loading dataset of section: {section}")
             return HANDataset(
                 self.preprocessor.dataset(section),
                 self.label_to_id_map(),
