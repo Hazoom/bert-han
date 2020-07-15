@@ -55,10 +55,10 @@ function(output_from, data_path='data/ag_news_csv/') {
 
         keep_every_n: 1000,
         eval_every_n: 100,
-        save_every_n: 100,
+        save_every_n: 1000,
 
         max_steps: 30000,
-        num_train_eval_items: 50,
+        num_train_eval_items: 10000,
     },
 
     optimizer: {

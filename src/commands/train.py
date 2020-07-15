@@ -275,7 +275,7 @@ class Trainer:
         # Divide each stat by 'total'
         for k in stats:
             if k != "total":
-                stats[k] /= stats["total"]
+                stats[k] /= float(stats["total"])
         if "total" in stats:
             del stats["total"]
 
