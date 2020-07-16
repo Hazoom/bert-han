@@ -2,6 +2,7 @@ import os
 import json
 import collections
 from typing import Tuple, Dict
+import random
 import srsly
 
 from src.nlp.abstract_embeddings import Embedder
@@ -14,7 +15,6 @@ from src.nlp import textcleaning
 
 @registry.register('preprocessor', 'HANPreprocessor')
 class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
-
     def __init__(self, save_path, min_freq, max_count, word_emb, nlp, max_sent_length, max_doc_length):
         self.word_emb: Embedder = registry.instantiate(
             registry.lookup("word_emb", word_emb["name"]),
@@ -71,7 +71,7 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         if preprocessed["label"] not in self.label_to_id:
             self.label_to_id[preprocessed["label"]] = len(self.label_to_id)
 
-        if section == "test":
+        if section == "train":
             for sentence in preprocessed["sentences"]:
                 for token in sentence:
                     if token:
@@ -128,3 +128,12 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
 
     def dataset(self, section: str):
         return list(srsly.read_jsonl(os.path.join(self.data_dir, section + ".jsonl")))
+
+    def create_validation_set(self, val_split: float, path: str) -> None:
+        print(f"creating validation set with split: {val_split} to path: {path}")
+        texts = self.texts["train"]
+        sample_indices = set(random.sample(range(len(texts)), int(val_split * len(texts))))
+        val_texts = [item for item_index, item in enumerate(texts) if item_index in sample_indices]
+        train_texts = [item for item_index, item in enumerate(texts) if item_index not in sample_indices]
+        self.texts["train"] = train_texts
+        self.texts["val"] = val_texts

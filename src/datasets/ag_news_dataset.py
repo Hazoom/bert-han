@@ -1,3 +1,4 @@
+import os
 import csv
 import tqdm
 import torch.utils.data
@@ -12,6 +13,10 @@ class AGNewsDataset(torch.utils.data.Dataset):
         self.path = path
 
         self.items = []
+
+        if not os.path.exists(self.path):
+            return
+
         with open(path, "r") as in_file:
             reader = csv.reader(in_file)
             for index, line in enumerate(tqdm.tqdm(reader, desc=f"reading rows from path: {path}", dynamic_ncols=True)):

@@ -151,7 +151,7 @@ class Trainer:
             batch_size=self.train_config.eval_batch_size,
             collate_fn=collate_fn)
 
-        val_data = self.model_preprocessor.dataset("test")  #TODO: change to validation set
+        val_data = self.model_preprocessor.dataset("val")
         val_data_loader = torch.utils.data.DataLoader(
             val_data,
             batch_size=self.train_config.eval_batch_size,

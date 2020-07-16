@@ -37,12 +37,25 @@ class Preprocessor:
 
     def preprocess(self):
         self.model_preprocessor.clear_items()
+        need_to_create_validation_set = False
         for section in self.config["dataset"]:
             data = registry.construct("dataset", self.config["dataset"][section])
+
+            if section == "val" and len(data) == 0:
+                need_to_create_validation_set = True
+                continue
+
             for item in tqdm.tqdm(data, desc=f"pre-processing {section} section", dynamic_ncols=True):
                 to_add, validation_info = self.model_preprocessor.validate_item(item, section)
                 if to_add:
                     self.model_preprocessor.add_item(item, section, validation_info)
+
+        if need_to_create_validation_set:
+            self.model_preprocessor.create_validation_set(
+                val_split=self.config["dataset"]["val"].get("val_split", 0.1),
+                path=self.config["dataset"]["val"]["path"]
+            )
+
         self.model_preprocessor.save()
 
 

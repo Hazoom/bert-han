@@ -76,3 +76,7 @@ class AbstractPreproc(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_dataset_size(self, section: str) -> int:
         pass
+
+    @abc.abstractmethod
+    def create_validation_set(self, val_split: float, path: str) -> None:
+        pass

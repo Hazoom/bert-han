@@ -71,6 +71,9 @@ class HANModel(torch.nn.Module):
                 self.get_dataset_size(section),
             )
 
+        def create_validation_set(self, val_split: float, path: str) -> None:
+            self.preprocessor.create_validation_set(val_split, path)
+
     def __init__(self, preprocessor, device, word_attention, sentence_attention, final_layer_dim, final_layer_dropout):
         super().__init__()
         self.preprocessor = preprocessor

@@ -6,6 +6,11 @@ function(output_from, data_path='data/ag_news_csv/') {
             name: 'ag_news',
             path: PREFIX + 'train.csv',
         },
+        val: {
+            name: 'ag_news',
+            path: PREFIX + 'val.csv',
+            val_split: 0.1,
+        },
         test: {
             name: 'ag_news',
             path: PREFIX + 'test.csv',
