@@ -1,6 +1,11 @@
 function(output_from, data_path='data/ag_news_csv/') {
     local PREFIX = data_path,
-    
+
+    classes: {
+        name: 'classes',
+        path: PREFIX + 'classes.txt'
+    },
+
     dataset: {
         train: {
             name: 'ag_news',
@@ -58,11 +63,11 @@ function(output_from, data_path='data/ag_news_csv/') {
         batch_size: 32,
         eval_batch_size: 50,
 
-        keep_every_n: 1000,
+        keep_every_n: 8000,
         eval_every_n: 100,
         save_every_n: 100,
 
-        max_steps: 20000,
+        max_steps: 10000,
         num_train_eval_items: 10000,
     },
 

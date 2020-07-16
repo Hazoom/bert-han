@@ -254,9 +254,9 @@ class Trainer:
                 doc_lengths = doc_lengths.to(self.device)  # (batch_size)
 
                 # scores: (n_docs, n_classes)
-                # loss: float
                 # word_att_weights: (n_docs, max_doc_len_in_batch, max_sent_len_in_batch)
                 # sentence_att_weights: (n_docs, max_doc_len_in_batch)
+                # loss: float
                 scores, _, _, loss = self.model(
                     docs, doc_lengths, sent_lengths, labels
                 )

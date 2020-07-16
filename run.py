@@ -7,7 +7,7 @@ import _jsonnet
 import attr
 
 
-from src.commands import preprocess, train
+from src.commands import preprocess, train, infer
 
 
 @attr.s
@@ -21,6 +21,16 @@ class TrainConfig:
     config = attr.ib()
     config_args = attr.ib()
     logdir = attr.ib()
+
+
+@attr.s
+class InferConfig:
+    config = attr.ib()
+    config_args = attr.ib()
+    logdir = attr.ib()
+    section = attr.ib()
+    output = attr.ib()
+    limit = attr.ib(default=None)
 
 
 def main():
@@ -52,6 +62,16 @@ def main():
     elif args.mode == "train":
         train_config = TrainConfig(model_config_file, model_config_args, log_dir)
         train.main(train_config)
+    elif args.mode == "infer":
+        infer_output_path = f"{exp_config['test_output']}/{exp_config['test_name']}.infer"
+        infer_config = InferConfig(
+            model_config_file,
+            model_config_args,
+            log_dir,
+            exp_config["test_section"],
+            infer_output_path,
+        )
+        infer.main(infer_config)
     else:
         raise ValueError(f"command {args.mode} is not supported")
 
