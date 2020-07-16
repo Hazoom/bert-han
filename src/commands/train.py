@@ -214,6 +214,10 @@ class Trainer:
 
                 last_step += 1
 
+                # Run saver
+                if last_step == 1 or last_step % self.train_config.save_every_n == 0:
+                    saver.save(model_dir, last_step)
+
             if self.train_config.eval_on_train:
                 self._eval_model(
                     self.logger,
