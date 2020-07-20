@@ -126,12 +126,12 @@ class Inferer:
 
                 for i in range(index, min(index + batch_size, len(sliced_preproc_data.component))):
                     index_in_batch = i - index
-                    true_label_int = int(sliced_preproc_data.component[index_in_batch]["label"])
+                    true_label_int = int(sliced_preproc_data.component[i]["label"])
                     predicted_label_int = int(self.id_to_label[predictions[index_in_batch]])
                     output.write(
                         json.dumps({
                             "index": index_in_batch,
-                            "original_document": sliced_preproc_data.component[index_in_batch]["sentences"],
+                            "original_document": sliced_preproc_data.component[i]["sentences"],
                             "true_label": self.label_to_name[true_label_int],
                             "predicted_label": self.label_to_name[predicted_label_int],
                             "probs": scores[index_in_batch],
