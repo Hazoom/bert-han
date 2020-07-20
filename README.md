@@ -3,8 +3,7 @@ Hierarchical-Attention-Network for Document Classification implementation in PyT
 This repository is an implementation of the article [Hierarchical Attention Networks for Document Classification
 ](https://www.aclweb.org/anthology/N16-1174/) (Yang et al.).
 
-<img src="images/han.jpg" width="800"/>
-
+![han](images/han.jpg)
 
 ## Setup Instructions
 Install `pipenv` with the following command:
@@ -95,7 +94,7 @@ For example, for item in index 200, we will notice that the 2nd sentence (out of
 the phrases: **broadband  users** and **internet  users** that had the highest weights when determining the prediction of
 class `Sci/Tech`:
 
-<img src="images/attention_200.jpg" width="800"/>
+![attention](images/attention_200.jpg)
 
 
 ## References
