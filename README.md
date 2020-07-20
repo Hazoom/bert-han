@@ -3,6 +3,9 @@ Hierarchical-Attention-Network for Document Classification implementation in PyT
 This repository is an implementation of the article [Hierarchical Attention Networks for Document Classification
 ](https://www.aclweb.org/anthology/N16-1174/) (Yang et al.).
 
+![Hierarchical Attention Networks](images/han.png?raw=true)
+
+
 ## Setup Instructions
 Install `pipenv` with the following command:
 
@@ -30,7 +33,7 @@ $ pipenv sync
 
 ## Usage
 
-### Step 1: Download third-party datasets & dependencies
+### Step 1: Download data sets
 
 Download the document classification data sets from my Google Drive [folder](https://drive.google.com/drive/folders/0Bz8a_Dbh9Qhbfll6bVpmNUtUcFdjYmF2SEpmZUZUcVNiMUw1TWN6RDV3a0JHT3kxLVhVR2M?usp=sharing). Unpack it somewhere to create the following directory structure:
 ```
@@ -80,6 +83,20 @@ The `infer` step will output the classification report against the test set of t
    macro avg       0.93      0.93      0.93      7599
 weighted avg       0.93      0.93      0.93      7599
 ```
+
+### Step 3: Visualize Predictions
+
+One can visualize the sentence/word attention weights per each item in the test set, after running the `infer` command,
+using the notebook `notebooks/Prediction Visualizer.ipynb`.
+
+Please note that one may need to change the value of `PREDICTIONS_PATH` when using this notebook.
+
+For example, for item in index 200, we will notice that the 2nd sentence (out of 2) got the most attention and same goes for
+the phrases: **broadband  users** and **internet  users** that had the highest weights when determining the prediction of
+class `Sci/Tech`:
+
+![Hierarchical Attention Networks](images/attention_200.png?raw=true)
+
 
 ## References
 
