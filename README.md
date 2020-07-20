@@ -3,7 +3,7 @@ Hierarchical-Attention-Network for Document Classification implementation in PyT
 This repository is an implementation of the article [Hierarchical Attention Networks for Document Classification
 ](https://www.aclweb.org/anthology/N16-1174/) (Yang et al.).
 
-![Hierarchical Attention Networks](./images/han.png)
+<img src="images/han.png" width="800"/>
 
 
 ## Setup Instructions
