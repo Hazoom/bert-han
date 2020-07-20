@@ -95,7 +95,7 @@ For example, for item in index 200, we will notice that the 2nd sentence (out of
 the phrases: **broadband  users** and **internet  users** that had the highest weights when determining the prediction of
 class `Sci/Tech`:
 
-![Hierarchical Attention Networks](./images/attention_200.png)
+<img src="images/attention_200.png" width="800"/>
 
 
 ## References
