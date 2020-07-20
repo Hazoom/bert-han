@@ -8,6 +8,8 @@ import _jsonnet
 import torch
 import torch.utils.data
 
+from sklearn.metrics import classification_report, accuracy_score
+
 # These imports are needed for registry.lookup
 # noinspection PyUnresolvedReferences
 from src.datasets import yahoo_dataset, ag_news_dataset, classes
@@ -96,6 +98,8 @@ class Inferer:
             batch_size=batch_size,
             collate_fn=collate_fn)
 
+        true_labels = []
+        predictions_labels = []
         index = 0
         model.eval()
         with torch.no_grad():
@@ -122,21 +126,28 @@ class Inferer:
 
                 for i in range(index, min(index + batch_size, len(sliced_preproc_data.component))):
                     index_in_batch = i - index
+                    true_label_int = int(sliced_preproc_data.component[index_in_batch]["label"])
+                    predicted_label_int = int(self.id_to_label[predictions[index_in_batch]])
                     output.write(
                         json.dumps({
                             "index": index_in_batch,
                             "original_document": sliced_preproc_data.component[index_in_batch]["sentences"],
-                            "true_label": self.label_to_name[int(
-                                sliced_preproc_data.component[index_in_batch]["label"]
-                            )],
-                            "predicted_label": self.label_to_name[int(self.id_to_label[predictions[index_in_batch]])],
+                            "true_label": self.label_to_name[true_label_int],
+                            "predicted_label": self.label_to_name[predicted_label_int],
                             "probs": scores[index_in_batch],
                             "word_att_weights": word_att_weights[index_in_batch],
                             "sentence_att_weights": sentence_att_weights[index_in_batch],
                         }) + "\n")
                     output.flush()
+                    true_labels.append(true_label_int - 1)
+                    predictions_labels.append(predicted_label_int - 1)
 
                 index += batch_size
+
+        target_names = [self.label_to_name[key] for key in sorted(self.label_to_name.keys())]
+        print("Test accuracy:", accuracy_score(true_labels, predictions_labels))
+        report = classification_report(true_labels, predictions_labels, target_names=target_names)
+        print("Classification Report:\n", report, "\n")
 
 
 def add_parser():

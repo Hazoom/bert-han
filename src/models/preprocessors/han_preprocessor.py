@@ -69,7 +69,7 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         preprocessed = self.preprocess_item(item)
         self.texts[section].append(preprocessed)
         if preprocessed["label"] not in self.label_to_id:
-            self.label_to_id[preprocessed["label"]] = len(self.label_to_id)
+            self.label_to_id[preprocessed["label"]] = int(preprocessed["label"]) - 1
 
         if section == "train":
             for sentence in preprocessed["sentences"]:
