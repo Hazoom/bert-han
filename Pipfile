@@ -17,6 +17,8 @@ ftfy = "==5.7"
 pypeln = "==0.1.10"
 pathos = "==0.2.5"
 scikit-learn = "==0.22.1"
+ipykernel = "==5.3.3"
+matplotlib = "==3.3.0"
 
 [requires]
 python_version = "3.6"

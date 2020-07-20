@@ -63,7 +63,7 @@ def main():
         train_config = TrainConfig(model_config_file, model_config_args, log_dir)
         train.main(train_config)
     elif args.mode == "infer":
-        infer_output_path = f"{exp_config['test_output']}/{exp_config['test_name']}.infer"
+        infer_output_path = f"{exp_config['test_output']}/{exp_config['test_name']}.jsonl"
         infer_config = InferConfig(
             model_config_file,
             model_config_args,
