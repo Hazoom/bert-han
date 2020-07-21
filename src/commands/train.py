@@ -13,9 +13,9 @@ import torch.utils.data
 # noinspection PyUnresolvedReferences
 from src.datasets import yahoo_dataset, ag_news_dataset
 # noinspection PyUnresolvedReferences
-from src.models import han, wordattention, sentenceattention, optimizers
+from src.models import han, wordattention, sentenceattention, optimizers, bert_han
 # noinspection PyUnresolvedReferences
-from src.models.preprocessors import han_preprocessor
+from src.models.preprocessors import han_preprocessor, bert_preprocessor
 # noinspection PyUnresolvedReferences
 from src.nlp import glove_embeddings, spacynlp
 # noinspection PyUnresolvedReferences
@@ -118,16 +118,37 @@ class Trainer:
 
     def train(self, config, model_dir):
         with self.init_random:
-            optimizer = registry.construct(
-                kind="optimizer",
-                config=config["optimizer"],
-                params=self.model.parameters(),
-            )
-            lr_scheduler = registry.construct(
-                kind="lr_scheduler",
-                config=config["lr_scheduler"],
-                param_groups=optimizer.param_groups,
-            )
+            if config["optimizer"].get("name", None) == "bertAdamw":
+                bert_params = list(self.model.encoder.bert_model.parameters())
+                assert len(bert_params) > 0
+                non_bert_params = []
+                for name, _param in self.model.named_parameters():
+                    if "bert" not in name:
+                        non_bert_params.append(_param)
+                assert len(non_bert_params) + len(bert_params) == len(list(self.model.parameters()))
+
+                optimizer = registry.construct(
+                    kind="optimizer",
+                    config=config["optimizer"],
+                    non_bert_params=non_bert_params,
+                    bert_params=bert_params
+                )
+                lr_scheduler = registry.construct(
+                    kind="lr_scheduler",
+                    config=config["lr_scheduler"],
+                    param_groups=[optimizer.non_bert_param_group, optimizer.bert_param_group]
+                )
+            else:
+                optimizer = registry.construct(
+                    kind="optimizer",
+                    config=config["optimizer"],
+                    params=self.model.parameters(),
+                )
+                lr_scheduler = registry.construct(
+                    kind="lr_scheduler",
+                    config=config["lr_scheduler"],
+                    param_groups=optimizer.param_groups,
+                )
 
         # 2. Restore model parameters
         saver = saver_mod.Saver(

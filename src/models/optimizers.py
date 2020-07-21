@@ -1,5 +1,6 @@
 import attr
 import torch
+import transformers
 
 from src.utils import registry
 
@@ -30,3 +31,45 @@ class WarmupPolynomialLRScheduler:
         for param_group in self.param_groups:
             param_group["lr"] = new_lr
 
+
+@registry.register('optimizer', 'bertAdamw')
+class BertAdamW(transformers.AdamW):
+    """
+    Given a model and its bert module, create parameter groups with different lr
+    """
+
+    def __init__(self, non_bert_params, bert_params, lr=1e-3, bert_lr=2e-5, **kwargs):
+        self.bert_param_group = {"params": bert_params, "lr": bert_lr, "weight_decay": 0}
+        self.non_bert_param_group = {"params": non_bert_params}
+
+        params = [self.non_bert_param_group, self.bert_param_group]
+        if "name" in kwargs:
+            del kwargs["name"]
+        super(BertAdamW, self).__init__(params, lr=lr, **kwargs)
+
+
+@registry.register('lr_scheduler', 'bert_warmup_polynomial_group')
+@attr.s
+class BertWarmupPolynomialLRSchedulerGroup(WarmupPolynomialLRScheduler):
+    """
+    Set the lr of bert to be zero when the other param group is warming-up
+    """
+    start_lrs = attr.ib()
+
+    # Bert parameters are in the second group by default
+    def update_lr(self, current_step):
+        for i, (start_lr, param_group) in enumerate(zip(self.start_lrs, self.param_groups)):
+            if current_step < self.num_warmup_steps:
+                if i == 0:
+                    warmup_frac_done = current_step / self.num_warmup_steps
+                    new_lr = start_lr * warmup_frac_done
+                else:  # fix bert during warm-up
+                    assert i == 1
+                    new_lr = 0
+            else:
+                new_lr = (
+                        (start_lr - self.end_lr) * (
+                            1 - (current_step - self.num_warmup_steps) / self.decay_steps) ** self.power
+                        + self.end_lr)
+
+            param_group['lr'] = new_lr

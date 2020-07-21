@@ -12,7 +12,7 @@ from src.datasets import yahoo_dataset, ag_news_dataset
 # noinspection PyUnresolvedReferences
 from src.models import han
 # noinspection PyUnresolvedReferences
-from src.models.preprocessors import han_preprocessor
+from src.models.preprocessors import han_preprocessor, bert_preprocessor
 # noinspection PyUnresolvedReferences
 from src.nlp import glove_embeddings, spacynlp
 # noinspection PyUnresolvedReferences

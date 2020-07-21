@@ -31,7 +31,9 @@ class WordAttention(torch.nn.Module):
         self.attention_dim = attention_dim
 
         assert self.recurrent_size % 2 == 0
-        assert self.word_emb_size == self.embedder.dim
+
+        if self.embedder:
+            assert self.word_emb_size == self.embedder.dim
 
         # embedding layer
         self.embedding = torch.nn.Embedding(num_embeddings=len(self.vocab), embedding_dim=self.word_emb_size)

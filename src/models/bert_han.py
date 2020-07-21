@@ -6,13 +6,12 @@ from src.nlp import abstract_embeddings
 from src.models import abstract_preprocessor
 from src.utils import registry, vocab
 from src.datasets.hanitem import HANItem
-from src.datasets.han_dataset import HANDataset
+from src.datasets.bert_han_dataset import BERTHANDataset
 
 
-@registry.register('model', 'HAN')
+@registry.register("model", "BERTHAN")
 class HANModel(torch.nn.Module):
     class Preprocessor(abstract_preprocessor.AbstractPreproc):
-
         def __init__(self, preprocessor):
             super().__init__()
 
@@ -60,23 +59,23 @@ class HANModel(torch.nn.Module):
         def label_to_id_map(self) -> Dict:
             return self.preprocessor.label_to_id_map()
 
-        def dataset(self, section) -> HANDataset:
+        def dataset(self, section) -> BERTHANDataset:
             print(f"Loading dataset of section: {section}")
-            return HANDataset(
+            return BERTHANDataset(
                 self.preprocessor.dataset(section),
                 self.label_to_id_map(),
-                self.get_vocab(),
                 self.get_max_sent_length(),
                 self.get_max_doc_length(),
                 self.get_num_classes(),
                 self.get_dataset_size(section),
+                self.get_tokenizer(),
             )
-
-        def get_tokenizer(self):
-            return self.preprocessor.get_tokenizer()
 
         def create_validation_set(self, val_split: float, path: str) -> None:
             self.preprocessor.create_validation_set(val_split, path)
+
+        def get_tokenizer(self):
+            return self.preprocessor.get_tokenizer()
 
     def __init__(self, preprocessor, device, word_attention, sentence_attention, final_layer_dim, final_layer_dropout):
         super().__init__()
