@@ -123,7 +123,7 @@ class Inferer:
                 # word_att_weights: (n_docs, max_doc_len_in_batch, max_sent_len_in_batch)
                 # sentence_att_weights: (n_docs, max_doc_len_in_batch)
                 # loss: float
-                if attention_masks and token_type_ids:
+                if attention_masks is not None and token_type_ids is not None:
                     scores, word_att_weights, sentence_att_weights, loss = model(
                         docs, doc_lengths, sent_lengths, labels, attention_masks, token_type_ids
                     )
