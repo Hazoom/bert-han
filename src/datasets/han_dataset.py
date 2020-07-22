@@ -77,5 +77,6 @@ def collate_fn(batch):
         docs_tensor,
         torch.tensor(labels, dtype=torch.long),
         torch.tensor(doc_lengths, dtype=torch.long),
-        sent_lengths_tensor
+        sent_lengths_tensor,
+        None,
     )

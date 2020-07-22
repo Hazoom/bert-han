@@ -1,62 +1,27 @@
 import torch
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, PackedSequence
+from transformers import BertModel
 
-from src.models.abstract_preprocessor import AbstractPreproc
-
-from src.utils import vocab
-from src.nlp import abstract_embeddings
 from src.utils import registry
 
 
-@registry.register("word_attention", "WordAttention")
+@registry.register("word_attention", "BERTWordAttention")
 class WordAttention(torch.nn.Module):
     def __init__(
             self,
             device: str,
-            preprocessor: AbstractPreproc,
-            word_emb_size: int,
-            dropout: float,
             recurrent_size: int,
             attention_dim: int,
+            bert_version: str = "bert-base-uncased",
     ):
         super().__init__()
-        self._device = device
-        self.preprocessor = preprocessor
-        self.embedder: abstract_embeddings.Embedder = self.preprocessor.get_embedder()
-        self.vocab: vocab.Vocab = self.preprocessor.get_vocab()
-        self.word_emb_size = word_emb_size
-        self.recurrent_size = recurrent_size
-        self.dropout = dropout
         self.attention_dim = attention_dim
+        self.recurrent_size = recurrent_size
+        self._device = device
+        self.bert_model = BertModel.from_pretrained(bert_version)
 
-        assert self.recurrent_size % 2 == 0
-
-        assert self.word_emb_size == self.embedder.dim
-
-        # embedding layer
-        self.embedding = torch.nn.Embedding(num_embeddings=len(self.vocab), embedding_dim=self.word_emb_size)
-
-        # init embedding
-        init_embed_list = []
-        for index, word in enumerate(self.vocab):
-            if self.embedder.contains(word):
-                init_embed_list.append(self.embedder.lookup(word))
-            else:
-                init_embed_list.append(self.embedding.weight[index])
-        init_embed_weight = torch.stack(init_embed_list, 0)
-        self.embedding.weight = nn.Parameter(init_embed_weight)
-
-        self.encoder = nn.LSTM(
-            input_size=self.word_emb_size,
-            hidden_size=self.recurrent_size // 2,
-            dropout=self.dropout,
-            bidirectional=True,
-            batch_first=True,
-        )
-        self.dropout = nn.Dropout(dropout)
-
-        # Maps LSTM output to `attention_dim` sized tensor
+        # Maps BERT output to `attention_dim` sized tensor
         self.word_weight = nn.Linear(self.recurrent_size, self.attention_dim)
 
         # Word context vector (u_w) to take dot-product with
@@ -65,11 +30,13 @@ class WordAttention(torch.nn.Module):
     def recurrent_size(self):
         return self.recurrent_size
 
-    def forward(self, docs, doc_lengths, sent_lengths):
+    def forward(self, docs, doc_lengths, sent_lengths, attention_masks, token_type_ids):
         """
         :param docs: encoded document-level data; LongTensor (num_docs, padded_doc_length, padded_sent_length)
         :param doc_lengths: unpadded document lengths; LongTensor (num_docs)
         :param sent_lengths: unpadded sentence lengths; LongTensor (num_docs, max_sent_len)
+        :param attention_masks: BERT attention masks; LongTensor (num_docs, padded_doc_length, padded_sent_length)
+        :param token_type_ids: BERT token type IDs; LongTensor (num_docs, padded_doc_length, padded_sent_length)
         :return: sentences embeddings, docs permutation indices, docs batch sizes, word attention weights
         """
 
@@ -91,21 +58,30 @@ class WordAttention(torch.nn.Module):
         # -> `packed_sent_lengths.data` is now of size (num_sents)
         packed_sent_lengths = pack_padded_sequence(sent_lengths, lengths=doc_lengths.tolist(), batch_first=True)
 
-        sents, sent_lengths = packed_sents.data, packed_sent_lengths.data
+        # Make a long batch of attention masks by removing pad-sentences
+        # i.e. `docs` was of size (num_docs, padded_doc_length, padded_sent_length)
+        # -> `packed_attention_masks.data` is now of size (num_sents, padded_sent_length)
+        packed_attention_masks = pack_padded_sequence(attention_masks, lengths=doc_lengths.tolist(), batch_first=True)
+
+        # Make a long batch of token_type_ids by removing pad-sentences
+        # i.e. `docs` was of size (num_docs, padded_doc_length, padded_sent_length)
+        # -> `token_type_ids.data` is now of size (num_sents, padded_sent_length)
+        packed_token_type_ids = pack_padded_sequence(token_type_ids, lengths=doc_lengths.tolist(), batch_first=True)
+
+        sents, sent_lengths, attn_masks, token_types = (
+            packed_sents.data, packed_sent_lengths.data, packed_attention_masks.data, packed_token_type_ids.data
+        )
 
         # Sort sents by decreasing order in sentence lengths
         sent_lengths, sent_perm_idx = sent_lengths.sort(dim=0, descending=True)
         sents = sents[sent_perm_idx]
 
-        inp = self.dropout(self.embedding(sents))
+        embeddings, pooled_out = self.bert_model(sents, attention_mask=attn_masks, token_type_ids=token_types)
 
-        packed_words = pack_padded_sequence(inp, lengths=sent_lengths.tolist(), batch_first=True)
+        packed_words = pack_padded_sequence(embeddings, lengths=sent_lengths.tolist(), batch_first=True)
 
         # effective batch size at each timestep
         sentences_valid_bsz = packed_words.batch_sizes
-
-        # Apply word-level LSTM over word embeddings
-        packed_words, _ = self.encoder(packed_words)
 
         u_i = torch.tanh(self.word_weight(packed_words.data))
         u_w = self.context_weight(u_i).squeeze(1)

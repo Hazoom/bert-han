@@ -4,29 +4,20 @@ import collections
 from typing import Tuple, Dict
 import random
 import srsly
+from transformers import BertTokenizer
 
 from src.nlp.abstract_embeddings import Embedder
-from src.nlp.abstract_nlp import NLP
 from src.models import abstract_preprocessor
 from src.utils import registry, vocab
 from src.datasets.hanitem import HANItem
 from src.nlp import textcleaning
 
 
-@registry.register('preprocessor', 'HANPreprocessor')
-class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
+@registry.register('preprocessor', 'BERTPreprocessor')
+class BERTPreprocessor(abstract_preprocessor.AbstractPreproc):
 
-    def __init__(self, save_path, min_freq, max_count, word_emb, nlp, max_sent_length, max_doc_length):
-        self.word_emb: Embedder = registry.instantiate(
-            registry.lookup("word_emb", word_emb["name"]),
-            word_emb,
-            unused_keys=("name",),
-        )
-        self.nlp: NLP = registry.instantiate(
-            registry.lookup("nlp", nlp["name"]),
-            nlp,
-            unused_keys=("name",),
-        )
+    def __init__(self, save_path, max_sent_length, max_doc_length, bert_version="bert-base-uncased"):
+        self.tokenizer = BertTokenizer.from_pretrained(bert_version)
 
         self.max_doc_length = max_doc_length
         self.max_sent_length = max_sent_length
@@ -34,17 +25,13 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         self.data_dir = os.path.join(save_path, "tokenized_data")
         self.texts = collections.defaultdict(list)
 
-        self.vocab_builder = vocab.VocabBuilder(min_freq, max_count)
-        self.vocab_path = os.path.join(save_path, "han_vocab.json")
-        self.vocab_word_freq_path = os.path.join(save_path, "han_word_freq.json")
         self.classes_path = os.path.join(save_path, "classes.json")
         self.dataset_sizes_path = os.path.join(save_path, "dataset_sizes.json")
-        self.vocab = None
         self.label_to_id = {}
         self.dataset_sizes = {}
 
     def get_vocab(self) -> vocab.Vocab:
-        return self.vocab
+        return None
 
     def get_dataset_size(self, section: str) -> int:
         return self.dataset_sizes[section]
@@ -53,7 +40,7 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         return len(self.label_to_id)
 
     def get_embedder(self) -> Embedder:
-        return self.word_emb
+        return None
 
     def get_max_sent_length(self) -> int:
         return self.max_sent_length
@@ -70,12 +57,6 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         if preprocessed["label"] not in self.label_to_id:
             self.label_to_id[preprocessed["label"]] = int(preprocessed["label"]) - 1
 
-        if section == "train":
-            for sentence in preprocessed["sentences"]:
-                for token in sentence:
-                    if token:
-                        self.vocab_builder.add_word(token)
-
     def clear_items(self):
         self.texts = collections.defaultdict(list)
 
@@ -91,14 +72,11 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         }
 
     def _tokenize(self, sentence: str):
-        return self.nlp.tokenize(sentence)
+        return self.tokenizer.tokenize(sentence)
 
     def save(self):
         os.makedirs(self.data_dir, exist_ok=True)
-        self.vocab = self.vocab_builder.finish()
-        print(f"{len(self.vocab)} words in vocab")
-        self.vocab.save(self.vocab_path)
-        self.vocab_builder.save(self.vocab_word_freq_path)
+        self.tokenizer.save_pretrained(self.data_dir)
 
         with open(self.classes_path, "w") as out_fp:
             json.dump(self.label_to_id, out_fp)
@@ -113,8 +91,7 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
             srsly.write_jsonl(os.path.join(self.data_dir, section + ".jsonl"), texts)
 
     def load(self):
-        self.vocab = vocab.Vocab.load(self.vocab_path)
-        self.vocab_builder.load(self.vocab_word_freq_path)
+        self.tokenizer = BertTokenizer.from_pretrained(self.data_dir)
 
         with open(self.classes_path, "r") as in_fp:
             self.label_to_id = json.load(in_fp)
@@ -138,4 +115,4 @@ class HANPreprocessor(abstract_preprocessor.AbstractPreproc):
         self.texts["val"] = val_texts
 
     def get_tokenizer(self):
-        return self.nlp
+        return self.tokenizer

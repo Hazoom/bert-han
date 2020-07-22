@@ -80,3 +80,7 @@ class AbstractPreproc(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def create_validation_set(self, val_split: float, path: str) -> None:
         pass
+
+    @abc.abstractmethod
+    def get_tokenizer(self):
+        pass
