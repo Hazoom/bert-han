@@ -50,6 +50,8 @@ function(args, data_path=_data_path) _base(output_from=true, data_path=data_path
         model_seed: seed,
         data_seed:  seed,
         init_seed:  seed,
+
+        max_steps: 15000,
     },
 
     optimizer: {
