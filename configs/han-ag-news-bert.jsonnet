@@ -30,7 +30,6 @@ function(args, data_path=_data_path) _base(output_from=true, data_path=data_path
         },
         sentence_attention+: {
             recurrent_size: base_bert_enc_size,
-            bert_version: 'bert-large-uncased-whole-word-masking',
             attention_dim: base_bert_enc_size,
             word_recurrent_size: base_bert_enc_size,
         },
