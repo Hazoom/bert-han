@@ -134,7 +134,7 @@ class HANModel(torch.nn.Module):
             )
         else:
             sent_embeddings, doc_perm_idx, docs_valid_bsz, word_att_weights = self.word_attention(
-                docs, doc_lengths, sent_lengths, attention_masks, token_type_ids
+                docs, doc_lengths, sent_lengths
             )
 
         # get document embedding for each document by passing the sentence embeddings in the sentence attention model
