@@ -45,7 +45,43 @@ class WordAttention(torch.nn.Module):
         docs = docs[doc_perm_idx]
         sent_lengths = sent_lengths[doc_perm_idx]
 
-        embeddings, pooled_out = self.bert_model(docs, attention_mask=attention_masks, token_type_ids=token_type_ids)
+        # Make a long batch of sentences by removing pad-sentences
+        # i.e. `docs` was of size (num_docs, padded_doc_length, padded_sent_length)
+        # -> `packed_sents.data` is now of size (num_sents, padded_sent_length)
+        packed_sents = pack_padded_sequence(docs, lengths=doc_lengths.tolist(), batch_first=True)
+
+        # effective batch size at each timestep
+        docs_valid_bsz = packed_sents.batch_sizes
+
+        # Make a long batch of sentence lengths by removing pad-sentences
+        # i.e. `sent_lengths` was of size (num_docs, padded_doc_length)
+        # -> `packed_sent_lengths.data` is now of size (num_sents)
+        packed_sent_lengths = pack_padded_sequence(sent_lengths, lengths=doc_lengths.tolist(), batch_first=True)
+
+        # Make a long batch of attention masks by removing pad-sentences
+        # i.e. `docs` was of size (num_docs, padded_doc_length, padded_sent_length)
+        # -> `packed_attention_masks.data` is now of size (num_sents, padded_sent_length)
+        packed_attention_masks = pack_padded_sequence(attention_masks, lengths=doc_lengths.tolist(), batch_first=True)
+
+        # Make a long batch of token_type_ids by removing pad-sentences
+        # i.e. `docs` was of size (num_docs, padded_doc_length, padded_sent_length)
+        # -> `token_type_ids.data` is now of size (num_sents, padded_sent_length)
+        packed_token_type_ids = pack_padded_sequence(token_type_ids, lengths=doc_lengths.tolist(), batch_first=True)
+
+        sents, sent_lengths, attn_masks, token_types = (
+            packed_sents.data, packed_sent_lengths.data, packed_attention_masks.data, packed_token_type_ids.data
+        )
+
+        # Sort sents by decreasing order in sentence lengths
+        sent_lengths, sent_perm_idx = sent_lengths.sort(dim=0, descending=True)
+        sents = sents[sent_perm_idx]
+
+        embeddings, pooled_out = self.bert_model(sents, attention_mask=attn_masks, token_type_ids=token_types)
+
+        packed_words = pack_padded_sequence(embeddings, lengths=sent_lengths.tolist(), batch_first=True)
+
+        # effective batch size at each timestep
+        sentences_valid_bsz = packed_words.batch_sizes
 
         u_i = torch.tanh(self.word_weight(packed_words.data))
         u_w = self.context_weight(u_i).squeeze(1)

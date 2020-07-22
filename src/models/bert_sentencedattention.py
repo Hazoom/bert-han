@@ -41,10 +41,8 @@ class SentenceAttention(torch.nn.Module):
         :return: docs embeddings, word attention weights, sentence attention weights
         """
 
-        sent_embeddings = self.dropout(sent_embeddings)
-
-        # Sentence-level LSTM over sentence embeddings
-        packed_sentences, _ = self.encoder(PackedSequence(sent_embeddings, doc_valid_bsz))
+        # Sentence-level BERT over sentence embeddings
+        packed_sentences, _ = self.bert_model(PackedSequence(sent_embeddings, doc_valid_bsz))
 
         u_i = torch.tanh(self.sentence_weight(packed_sentences.data))
         u_w = self.sentence_context_weight(u_i).squeeze(1)

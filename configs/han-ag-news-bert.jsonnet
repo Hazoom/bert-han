@@ -41,7 +41,6 @@ function(args, data_path=_data_path) _base(output_from=true, data_path=data_path
             save_path: _data_path + 'han,output_from=true,emb=BERT/',
             max_sent_length: 512,
             max_doc_length: 20,
-            bert_token_type: true,
             word_emb: null,
             nlp: null,
             min_freq: null,
