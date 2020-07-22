@@ -19,7 +19,6 @@ function(args, data_path=_data_path) _base(output_from=true, data_path=data_path
     }),
 
     model+: {
-        name: 'BERTHAN',
         word_attention+: {
             name: 'BERTWordAttention',
             bert_version: args.bert_version,

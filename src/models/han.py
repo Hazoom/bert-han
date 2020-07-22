@@ -7,6 +7,7 @@ from src.models import abstract_preprocessor
 from src.utils import registry, vocab
 from src.datasets.hanitem import HANItem
 from src.datasets.han_dataset import HANDataset
+from src.datasets.bert_han_dataset import BERTHANDataset
 
 
 @registry.register('model', 'HAN')
@@ -60,8 +61,19 @@ class HANModel(torch.nn.Module):
         def label_to_id_map(self) -> Dict:
             return self.preprocessor.label_to_id_map()
 
-        def dataset(self, section) -> HANDataset:
+        def dataset(self, section):
             print(f"Loading dataset of section: {section}")
+
+            if "bert" in str(type(self.preprocessor)).lower():  # check if it's BERT-based model or not
+                return BERTHANDataset(
+                    self.preprocessor.dataset(section),
+                    self.label_to_id_map(),
+                    self.get_max_sent_length(),
+                    self.get_max_doc_length(),
+                    self.get_num_classes(),
+                    self.get_dataset_size(section),
+                    self.get_tokenizer(),
+                )
             return HANDataset(
                 self.preprocessor.dataset(section),
                 self.label_to_id_map(),
@@ -104,19 +116,26 @@ class HANModel(torch.nn.Module):
 
         self.loss = nn.CrossEntropyLoss(reduction="mean").to(device)
 
-    def forward(self, docs, doc_lengths, sent_lengths, labels=None):
+    def forward(self, docs, doc_lengths, sent_lengths, labels=None, attention_masks=None, token_type_ids=None):
         """
         :param docs: encoded document-level data; LongTensor (num_docs, padded_doc_length, padded_sent_length)
         :param doc_lengths: unpadded document lengths; LongTensor (num_docs)
         :param sent_lengths: unpadded sentence lengths; LongTensor (num_docs, max_sent_len)
         :param labels: labels; LongTensor (num_docs)
+        :param attention_masks: BERT attention masks; LongTensor (num_docs, padded_doc_length, padded_sent_length)
+        :param token_type_ids: BERT token type IDs; LongTensor (num_docs, padded_doc_length, padded_sent_length)
         :return: class scores, attention weights of words, attention weights of sentences, loss
         """
 
         # get sentence embedding for each sentence by passing it in the word attention model
-        sent_embeddings, doc_perm_idx, docs_valid_bsz, word_att_weights = self.word_attention(
-            docs, doc_lengths, sent_lengths
-        )
+        if attention_masks is not None and token_type_ids is not None:
+            sent_embeddings, doc_perm_idx, docs_valid_bsz, word_att_weights = self.word_attention(
+                docs, doc_lengths, sent_lengths, attention_masks, token_type_ids
+            )
+        else:
+            sent_embeddings, doc_perm_idx, docs_valid_bsz, word_att_weights = self.word_attention(
+                docs, doc_lengths, sent_lengths, attention_masks, token_type_ids
+            )
 
         # get document embedding for each document by passing the sentence embeddings in the sentence attention model
         doc_embeds, word_att_weights, sentence_att_weights = self.sentence_attention(

@@ -13,9 +13,7 @@ import torch.utils.data
 # noinspection PyUnresolvedReferences
 from src.datasets import yahoo_dataset, ag_news_dataset
 # noinspection PyUnresolvedReferences
-from src.models import han, wordattention, sentenceattention, optimizers, bert_han
-# noinspection PyUnresolvedReferences
-from src.models import bert_wordattention
+from src.models import han, wordattention, sentenceattention, optimizers, bert_wordattention
 # noinspection PyUnresolvedReferences
 from src.models.preprocessors import han_preprocessor, bert_preprocessor
 # noinspection PyUnresolvedReferences
@@ -170,14 +168,14 @@ class Trainer:
                     shuffle=False,
                     drop_last=True,
                     collate_fn=train_data.bert_collate_fn if "bert" in str(
-                        type(self.model.preprocessor)).lower() else collate_fn
+                        type(self.model.preprocessor.preprocessor)).lower() else collate_fn
                 )
             )
         train_eval_data_loader = torch.utils.data.DataLoader(
             train_data,
             batch_size=self.train_config.eval_batch_size,
             collate_fn=train_data.bert_collate_fn if "bert" in str(
-                type(self.model.preprocessor)).lower() else collate_fn
+                type(self.model.preprocessor.preprocessor)).lower() else collate_fn
         )
 
         val_data = self.model_preprocessor.dataset("val")
@@ -185,7 +183,7 @@ class Trainer:
             val_data,
             batch_size=self.train_config.eval_batch_size,
             collate_fn=val_data.bert_collate_fn if "bert" in str(
-                type(self.model.preprocessor)).lower() else collate_fn
+                type(self.model.preprocessor.preprocessor)).lower() else collate_fn
         )
 
         # 4. Start training loop

@@ -14,9 +14,7 @@ from sklearn.metrics import classification_report, accuracy_score
 # noinspection PyUnresolvedReferences
 from src.datasets import yahoo_dataset, ag_news_dataset, classes
 # noinspection PyUnresolvedReferences
-from src.models import han, wordattention, sentenceattention, optimizers, bert_han
-# noinspection PyUnresolvedReferences
-from src.models import bert_wordattention
+from src.models import han, wordattention, sentenceattention, optimizers, bert_wordattention
 # noinspection PyUnresolvedReferences
 from src.models.preprocessors import han_preprocessor, bert_preprocessor
 # noinspection PyUnresolvedReferences
@@ -92,13 +90,14 @@ class Inferer:
             else:
                 sliced_preproc_data = preproc_data
             assert len(orig_data) == len(preproc_data)
-            self._inner_infer(model, sliced_preproc_data, output)
+            self._inner_infer(model, preproc_data, sliced_preproc_data, output)
 
-    def _inner_infer(self, model, sliced_preproc_data, output, batch_size=32):
+    def _inner_infer(self, model, preproc_data, sliced_preproc_data, output, batch_size=32):
         test_data_loader = torch.utils.data.DataLoader(
             sliced_preproc_data,
             batch_size=batch_size,
-            collate_fn=collate_fn)
+            collate_fn=preproc_data.bert_collate_fn if "bert" in str(
+                        type(model.preprocessor.preprocessor)).lower() else collate_fn)
 
         true_labels = []
         predictions_labels = []
