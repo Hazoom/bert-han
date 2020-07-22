@@ -22,7 +22,7 @@ function(args, data_path=_data_path) _base(output_from=true, data_path=data_path
         name: 'BERTHAN',
         word_attention+: {
             name: 'BERTWordAttention',
-            bert_version: 'bert-large-uncased-whole-word-masking',
+            bert_version: args.bert_version,
             recurrent_size: base_bert_enc_size,
             attention_dim: base_bert_enc_size,
             word_emb_size: null,
