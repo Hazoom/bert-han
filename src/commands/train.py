@@ -15,6 +15,8 @@ from src.datasets import yahoo_dataset, ag_news_dataset
 # noinspection PyUnresolvedReferences
 from src.models import han, wordattention, sentenceattention, optimizers, bert_han
 # noinspection PyUnresolvedReferences
+from src.models import bert_wordattention, bert_sentencedattention
+# noinspection PyUnresolvedReferences
 from src.models.preprocessors import han_preprocessor, bert_preprocessor
 # noinspection PyUnresolvedReferences
 from src.nlp import glove_embeddings, spacynlp
@@ -119,7 +121,9 @@ class Trainer:
     def train(self, config, model_dir):
         with self.init_random:
             if config["optimizer"].get("name", None) == "bertAdamw":
-                bert_params = list(self.model.encoder.bert_model.parameters())
+                word_attention_bert_params = list(self.model.word_attention.bert_model.parameters())
+                sentence_attention_bert_params = list(self.model.sentence_attention.bert_model.parameters())
+                bert_params = word_attention_bert_params + sentence_attention_bert_params
                 assert len(bert_params) > 0
                 non_bert_params = []
                 for name, _param in self.model.named_parameters():
@@ -166,17 +170,24 @@ class Trainer:
                     batch_size=self.train_config.batch_size,
                     shuffle=False,
                     drop_last=True,
-                    collate_fn=collate_fn))
+                    collate_fn=train_data.bert_collate_fn if "bert" in str(
+                        type(self.model.preprocessor)).lower() else collate_fn
+                )
+            )
         train_eval_data_loader = torch.utils.data.DataLoader(
             train_data,
             batch_size=self.train_config.eval_batch_size,
-            collate_fn=collate_fn)
+            collate_fn=train_data.bert_collate_fn if "bert" in str(
+                type(self.model.preprocessor)).lower() else collate_fn
+        )
 
         val_data = self.model_preprocessor.dataset("val")
         val_data_loader = torch.utils.data.DataLoader(
             val_data,
             batch_size=self.train_config.eval_batch_size,
-            collate_fn=collate_fn)
+            collate_fn=val_data.bert_collate_fn if "bert" in str(
+                type(self.model.preprocessor)).lower() else collate_fn
+        )
 
         # 4. Start training loop
         with self.data_random:
@@ -208,20 +219,31 @@ class Trainer:
 
                 # Compute and apply gradient
                 with self.model_random:
-                    docs, labels, doc_lengths, sent_lengths = batch
+                    docs, labels, doc_lengths, sent_lengths, additional_data = batch
 
                     docs = docs.to(self.device)  # (batch_size, padded_doc_length, padded_sent_length)
                     labels = labels.to(self.device)  # (batch_size)
                     sent_lengths = sent_lengths.to(self.device)  # (batch_size, padded_doc_length)
                     doc_lengths = doc_lengths.to(self.device)  # (batch_size)
 
+                    attention_masks = None
+                    token_type_ids = None
+                    if additional_data:
+                        attention_masks = additional_data["attention_masks"].to(self.device)
+                        token_type_ids = additional_data["token_type_ids"].to(self.device)
+
                     # scores: (n_docs, n_classes)
                     # word_att_weights: (n_docs, max_doc_len_in_batch, max_sent_len_in_batch)
                     # sentence_att_weights: (n_docs, max_doc_len_in_batch)
                     # loss: float
-                    scores, word_att_weights, sentence_att_weights, loss = self.model(
-                        docs, doc_lengths, sent_lengths, labels
-                    )
+                    if attention_masks is not None and token_type_ids is not None:
+                        scores, word_att_weights, sentence_att_weights, loss = self.model(
+                            docs, doc_lengths, sent_lengths, labels, attention_masks, token_type_ids
+                        )
+                    else:
+                        scores, word_att_weights, sentence_att_weights, loss = self.model(
+                            docs, doc_lengths, sent_lengths, labels
+                        )
 
                     loss.backward()
 
@@ -266,7 +288,7 @@ class Trainer:
         model.eval()
         with torch.no_grad():
             for eval_batch in eval_data_loader:
-                docs, labels, doc_lengths, sent_lengths = eval_batch
+                docs, labels, doc_lengths, sent_lengths, additional_data = eval_batch
                 batch_size = len(labels)
 
                 docs = docs.to(self.device)  # (batch_size, padded_doc_length, padded_sent_length)
@@ -274,13 +296,24 @@ class Trainer:
                 sent_lengths = sent_lengths.to(self.device)  # (batch_size, padded_doc_length)
                 doc_lengths = doc_lengths.to(self.device)  # (batch_size)
 
+                attention_masks = None
+                token_type_ids = None
+                if additional_data:
+                    attention_masks = additional_data["attention_masks"].to(self.device)
+                    token_type_ids = additional_data["token_type_ids"].to(self.device)
+
                 # scores: (n_docs, n_classes)
                 # word_att_weights: (n_docs, max_doc_len_in_batch, max_sent_len_in_batch)
                 # sentence_att_weights: (n_docs, max_doc_len_in_batch)
                 # loss: float
-                scores, _, _, loss = self.model(
-                    docs, doc_lengths, sent_lengths, labels
-                )
+                if attention_masks and token_type_ids:
+                    scores, _, _, loss = self.model(
+                        docs, doc_lengths, sent_lengths, labels, attention_masks, token_type_ids
+                    )
+                else:
+                    scores, _, _, loss = self.model(
+                        docs, doc_lengths, sent_lengths, labels
+                    )
 
                 predictions = scores.max(dim=1)[1]
                 acc = torch.eq(predictions, labels).sum().item()

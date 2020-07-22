@@ -33,19 +33,24 @@ class BERTHANDataset(torch.utils.data.Dataset):
         else:
             return tokens + [self.tokenizer.sep_token]
 
-    def _pad_sequence_for_bert_batch(self, tokens_lists):
+    def _pad_sequence_for_bert_batch(self, tokens_lists, max_len: int):
         pad_id = self.tokenizer.pad_token_id
-        max_len = max([len(it) for it in tokens_lists])
         assert max_len <= self.max_sent_length
         toks_ids = []
         att_masks = []
+        tok_type_lists = []
         for item_toks in tokens_lists:
             padded_item_toks = item_toks + [pad_id] * (max_len - len(item_toks))
             toks_ids.append(padded_item_toks)
 
             _att_mask = [1] * len(item_toks) + [0] * (max_len - len(item_toks))
             att_masks.append(_att_mask)
-        return toks_ids, att_masks
+
+            first_sep_id = padded_item_toks.index(self.tokenizer.sep_token_id)
+            assert first_sep_id > 0
+            _tok_type_list = [0] * (first_sep_id + 1) + [1] * (max_len - first_sep_id - 1)
+            tok_type_lists.append(_tok_type_list)
+        return toks_ids, att_masks, tok_type_lists
 
     def _transform_text(self, sentences: List[List[str]]):
         # encode document with max sentence length and max document length (maximum number of sentences)
@@ -54,8 +59,7 @@ class BERTHANDataset(torch.utils.data.Dataset):
             bert_sentence = self._pad_single_sentence_for_bert(sentence)
             if len(bert_sentence) <= self.max_sent_length:
                 docs.append(bert_sentence)
-        docs = [self._pad_single_sentence_for_bert(sentence) for sentence in sentences]
-        docs = [sent[:self.max_sent_length] for sent in docs][:self.max_doc_length]
+        docs = docs[:self.max_doc_length]
         num_sents = min(len(docs), self.max_doc_length)
 
         # skip erroneous ones
@@ -64,9 +68,7 @@ class BERTHANDataset(torch.utils.data.Dataset):
 
         num_words = [min(len(sent), self.max_sent_length) for sent in docs][:self.max_doc_length]
 
-        padded_token_lists, _ = self._pad_sequence_for_bert_batch(docs)
-
-        return padded_token_lists, num_sents, num_words
+        return docs, num_sents, num_words
 
     def __getitem__(self, i):
         text: List[List[str]] = self.component[i]["sentences"]
@@ -80,3 +82,40 @@ class BERTHANDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return self.dataset_size
+
+    def bert_collate_fn(self, batch):
+        batch = filter(lambda x: x is not None, batch)
+        docs, labels, doc_lengths, sent_lengths = list(zip(*batch))
+
+        docs = [[self.tokenizer.convert_tokens_to_ids(sentence) for sentence in doc] for doc in docs]
+
+        bsz = len(labels)
+        batch_max_doc_length = max(doc_lengths)
+        batch_max_sent_length = max([max(sl) if sl else 0 for sl in sent_lengths])
+
+        docs_tensor = torch.zeros((bsz, batch_max_doc_length, batch_max_sent_length), dtype=torch.long)
+        batch_att_mask_tensor = torch.zeros((bsz, batch_max_doc_length, batch_max_sent_length), dtype=torch.long)
+        token_type_ids_tensor = torch.zeros((bsz, batch_max_doc_length, batch_max_sent_length), dtype=torch.long)
+        sent_lengths_tensor = torch.zeros((bsz, batch_max_doc_length))
+
+        for doc_idx, doc in enumerate(docs):
+            padded_token_lists, att_mask_lists, tok_type_lists = self._pad_sequence_for_bert_batch(
+                doc, batch_max_sent_length
+            )
+
+            doc_length = doc_lengths[doc_idx]
+            sent_lengths_tensor[doc_idx, :doc_length] = torch.tensor(sent_lengths[doc_idx], dtype=torch.long)
+
+            for sent_idx, (padded_tokens, att_masks, tok_types) in enumerate(
+                    zip(padded_token_lists, att_mask_lists, tok_type_lists)):
+                docs_tensor[doc_idx, sent_idx, :] = torch.tensor(padded_tokens, dtype=torch.long)
+                batch_att_mask_tensor[doc_idx, sent_idx, :] = torch.tensor(att_masks, dtype=torch.long)
+                token_type_ids_tensor[doc_idx, sent_idx, :] = torch.tensor(tok_types, dtype=torch.long)
+
+        return (
+            docs_tensor,
+            torch.tensor(labels, dtype=torch.long),
+            torch.tensor(doc_lengths, dtype=torch.long),
+            sent_lengths_tensor,
+            dict(attention_masks=batch_att_mask_tensor, token_type_ids=token_type_ids_tensor),
+        )

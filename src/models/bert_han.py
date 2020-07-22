@@ -85,7 +85,6 @@ class HANModel(torch.nn.Module):
             config=word_attention,
             unused_keys=("name",),
             device=device,
-            preprocessor=preprocessor.preprocessor
         )
         self.sentence_attention = registry.instantiate(
             callable=registry.lookup("sentence_attention", sentence_attention["name"]),
@@ -103,19 +102,26 @@ class HANModel(torch.nn.Module):
 
         self.loss = nn.CrossEntropyLoss(reduction="mean").to(device)
 
-    def forward(self, docs, doc_lengths, sent_lengths, labels=None):
+    def forward(self, docs, doc_lengths, sent_lengths, labels=None, attention_masks=None, token_type_ids=None):
         """
         :param docs: encoded document-level data; LongTensor (num_docs, padded_doc_length, padded_sent_length)
         :param doc_lengths: unpadded document lengths; LongTensor (num_docs)
         :param sent_lengths: unpadded sentence lengths; LongTensor (num_docs, max_sent_len)
         :param labels: labels; LongTensor (num_docs)
+        :param attention_masks: BERT attention masks; LongTensor (num_docs, padded_doc_length, padded_sent_length)
+        :param token_type_ids: BERT token type IDs; LongTensor (num_docs, padded_doc_length, padded_sent_length)
         :return: class scores, attention weights of words, attention weights of sentences, loss
         """
 
         # get sentence embedding for each sentence by passing it in the word attention model
-        sent_embeddings, doc_perm_idx, docs_valid_bsz, word_att_weights = self.word_attention(
-            docs, doc_lengths, sent_lengths
-        )
+        if attention_masks is not None and token_type_ids is not None:
+            sent_embeddings, doc_perm_idx, docs_valid_bsz, word_att_weights = self.word_attention(
+                docs, doc_lengths, sent_lengths, attention_masks, token_type_ids
+            )
+        else:
+            sent_embeddings, doc_perm_idx, docs_valid_bsz, word_att_weights = self.word_attention(
+                docs, doc_lengths, sent_lengths, attention_masks, token_type_ids
+            )
 
         # get document embedding for each document by passing the sentence embeddings in the sentence attention model
         doc_embeds, word_att_weights, sentence_att_weights = self.sentence_attention(
