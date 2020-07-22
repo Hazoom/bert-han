@@ -15,7 +15,7 @@ from src.datasets import yahoo_dataset, ag_news_dataset
 # noinspection PyUnresolvedReferences
 from src.models import han, wordattention, sentenceattention, optimizers, bert_han
 # noinspection PyUnresolvedReferences
-from src.models import bert_wordattention, bert_sentencedattention
+from src.models import bert_wordattention
 # noinspection PyUnresolvedReferences
 from src.models.preprocessors import han_preprocessor, bert_preprocessor
 # noinspection PyUnresolvedReferences
@@ -122,8 +122,7 @@ class Trainer:
         with self.init_random:
             if config["optimizer"].get("name", None) == "bertAdamw":
                 word_attention_bert_params = list(self.model.word_attention.bert_model.parameters())
-                sentence_attention_bert_params = list(self.model.sentence_attention.bert_model.parameters())
-                bert_params = word_attention_bert_params + sentence_attention_bert_params
+                bert_params = word_attention_bert_params
                 assert len(bert_params) > 0
                 non_bert_params = []
                 for name, _param in self.model.named_parameters():

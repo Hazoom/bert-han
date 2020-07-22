@@ -16,7 +16,7 @@ from src.datasets import yahoo_dataset, ag_news_dataset, classes
 # noinspection PyUnresolvedReferences
 from src.models import han, wordattention, sentenceattention, optimizers, bert_han
 # noinspection PyUnresolvedReferences
-from src.models import bert_wordattention, bert_sentencedattention
+from src.models import bert_wordattention
 # noinspection PyUnresolvedReferences
 from src.models.preprocessors import han_preprocessor, bert_preprocessor
 # noinspection PyUnresolvedReferences
