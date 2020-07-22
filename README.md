@@ -1,8 +1,16 @@
-# Hierarchical Attention Network
-Hierarchical-Attention-Network for Document Classification implementation in PyTorch.
-This repository is an implementation of the article [Hierarchical Attention Networks for Document Classification
-](https://www.aclweb.org/anthology/N16-1174/) (Yang et al.).
+# BERT Hierarchical Attention Network
+Hierarchical-Attention-Network for Document Classification implementation in PyTorch with a replacement of the traditional BiLSTM with BERT model.
 
+This repository is an implementation of the article [Hierarchical Attention Networks for Document Classification
+](https://www.aclweb.org/anthology/N16-1174/) (Yang et al.) such that one can choose if to use a
+traditional BiLSTM for creating sentence embeddings for each sentence or to use BERT for this task (configurable).
+If one chooses to use BERT in order to create sentence embedding for each sentence, then the rest of the network
+architecture is the same like in the original paper, i.e. feeding the sentence embeddings into BiLSTM encoder with attention
+to get a fixed length document vector, that in turn, is fed into a Multi Layer Perceptron with a Softmax activation
+aligned with the number of different classes of the chosen data set.
+
+
+**Original architecture**
 ![han](./images/han.jpg)
 
 ## Setup Instructions
@@ -63,12 +71,14 @@ python run.py infer experiment_config_file        # Step 3c: evaluate the result
 
 Use the following experiment config files to reproduce results:
 
-* AG News, GloVE version: `experiments/han-yahoo-glove-run.jsonnet.jsonnet`
-* Yahoo Answers, GloVE version: `experiments/han-yahoo-glove-run.jsonnet`
+* AG News, BiLSTM (GloVE embeddings) version: `experiments/han-yahoo-glove-run.jsonnet.jsonnet`
+* AG News, BERT (base) version: `experiments/han-yahoo-bert-run.jsonnet.jsonnet`
+* Yahoo Answers, BiLSTM (GloVE embeddings) version: `experiments/han-yahoo-glove-run.jsonnet`
 
 One may add new configuration files from other data sets or even play with the hyper-parameters of the existing configuration.
 
-The `infer` step will output the classification report against the test set of the desired data set. For example, on the `AG News` data set:
+The `infer` step will output the classification report against the test set of the desired data set.
+For example, on the `AG News` data set, with BiLSTM (GloVE embeddings) sentence encoder:
 
 ```
                precision    recall  f1-score   support
@@ -119,5 +129,26 @@ class `Sci/Tech`:
     url = "https://www.aclweb.org/anthology/N16-1174",
     doi = "10.18653/v1/N16-1174",
     pages = "1480--1489",
+}
+```
+
+[2] Jacob Devlin, Ming-Wei Chang, Kenton Lee, Kristina Toutanova, [{BERT}: Pre-training of Deep Bidirectional Transformers for Language Understanding
+](https://www.aclweb.org/anthology/N19-1423/)
+```
+@inproceedings{devlin-etal-2019-bert,
+    title = "{BERT}: Pre-training of Deep Bidirectional Transformers for Language Understanding",
+    author = "Devlin, Jacob  and
+      Chang, Ming-Wei  and
+      Lee, Kenton  and
+      Toutanova, Kristina",
+    booktitle = "Proceedings of the 2019 Conference of the North {A}merican Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers)",
+    month = jun,
+    year = "2019",
+    address = "Minneapolis, Minnesota",
+    publisher = "Association for Computational Linguistics",
+    url = "https://www.aclweb.org/anthology/N19-1423",
+    doi = "10.18653/v1/N19-1423",
+    pages = "4171--4186",
+    abstract = "We introduce a new language representation model called BERT, which stands for Bidirectional Encoder Representations from Transformers. Unlike recent language representation models (Peters et al., 2018a; Radford et al., 2018), BERT is designed to pre-train deep bidirectional representations from unlabeled text by jointly conditioning on both left and right context in all layers. As a result, the pre-trained BERT model can be fine-tuned with just one additional output layer to create state-of-the-art models for a wide range of tasks, such as question answering and language inference, without substantial task-specific architecture modifications. BERT is conceptually simple and empirically powerful. It obtains new state-of-the-art results on eleven natural language processing tasks, including pushing the GLUE score to 80.5 (7.7 point absolute improvement), MultiNLI accuracy to 86.7{\%} (4.6{\%} absolute improvement), SQuAD v1.1 question answering Test F1 to 93.2 (1.5 point absolute improvement) and SQuAD v2.0 Test F1 to 83.1 (5.1 point absolute improvement).",
 }
 ```
