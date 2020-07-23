@@ -4,7 +4,7 @@
     model_config_args: {
         bs: 32,
         bert_version: "bert-base-uncased",
-        max_steps: 15000,
+        max_steps: 120000,
         lr: 7.44e-4,
         bert_lr: 3e-6,
         end_lr: 0,
